@@ -44,7 +44,20 @@
   }
 
   window.addEventListener('mousemove', onMove, { passive: true });
-  ghost.addEventListener('click', wake); // 触屏兜底
+
+  // 点击小幽灵：唤醒 + 中偏小幅度的弹动
+  const canBounce = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    && typeof ghost.animate === 'function';
+  ghost.addEventListener('click', () => {
+    wake();
+    if (canBounce) {
+      // 用 scale 独立属性，避免与入场 transform / 身体跟随冲突；可每次点击重放
+      ghost.animate(
+        [{ scale: '1' }, { scale: '1.045' }, { scale: '1' }],
+        { duration: 340, easing: 'ease-in-out' }
+      );
+    }
+  });
 
   /* ---------- 漂浮粒子：逐个发射，类型在诞生时锁定 ---------- */
   const floaters = document.getElementById('floaters');
@@ -63,6 +76,7 @@
     let i = 0;
 
     function spawn() {
+      if (document.hidden) return; // 后台标签页不发射，避免切回时粒子堆叠
       const awake = hero.classList.contains('is-awake');
       const p = document.createElement('span');
       p.className = 'p';
@@ -92,5 +106,10 @@
 
     spawn();
     setInterval(spawn, 1500); // 每 1.5s 冒一个，间隔更长
+
+    // 切回前台时清掉可能积压的粒子，避免堆在一起
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) floaters.replaceChildren();
+    });
   }
 })();

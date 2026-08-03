@@ -56,7 +56,11 @@ body {
   animation: popIn 760ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   cursor: pointer;
   z-index: 2; /* 幽灵在漂浮物之上，遮住冒到身后的粒子 */
+  user-select: none;
+  -webkit-user-select: none;
 }
+/* 防止连点选中/拖出图片（复制框） */
+.ghost img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
 /* 呼吸浮动 + 鼠标微跟随 都作用在内层，避免与入场 transform 冲突 */
 .ghost__inner {
   position: relative;
