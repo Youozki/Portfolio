@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZhuChenYu · Portfolio</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="nav">
+    <nav aria-label="主导航">
+      <a href="#about">About Me</a>
+      <a href="#projects">Projects</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="hero" id="hero">
+    <!-- Zzz / 气泡：由 JS 逐个发射，按顺序一个个往上冒 -->
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+
+    <!-- 小幽灵：白色外轮廓+投影(image_7) 叠 灰色本体(image_6) 常驻，仅切换眼睛 -->
+    <div class="ghost" id="ghost" aria-label="小幽灵吉祥物">
+      <div class="ghost__inner" id="ghostInner">
+        <img class="ghost__halo" src="assets/image_7.png" alt="" />
+        <img class="ghost__body" src="assets/image_6.png" alt="小幽灵" />
+        <!-- 闭眼：直接使用设计稿中的双眼短横 -->
+        <span class="eyes eyes--closed">
+          <img class="eyes-closed-img" src="assets/eyes_closed.png" alt="" />
+        </span>
+        <!-- 睁眼：两颗眼珠，跟随鼠标 -->
+        <span class="eyes eyes--open">
+          <img class="eye eye--left" src="assets/image_9.png" alt="" />
+          <img class="eye eye--right" src="assets/image_8.png" alt="" />
+        </span>
+      </div>
+    </div>
+
+    <p class="greeting">Halo!&nbsp;&nbsp;I&apos;m ZhuChenYu</p>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
