@@ -2,7 +2,7 @@
   --ink: #3a3a3a;
   --muted: rgba(128, 127, 127, 1);
   --ghost-w: clamp(140px, 13vw, 178.58px);
-  --ghost-ratio: 1.00487; /* 179.45 / 178.58 */
+  --ghost-ratio: 1.00487; /* 179.45 / 178.58，首页幽灵原造型 */
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,9 +14,11 @@ body {
     "Helvetica Neue", Arial, sans-serif;
   background: #fff;
   color: var(--ink);
-  overflow: hidden;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
+body.route-home { overflow-y: hidden; }      /* 首页固定不滚动 */
+body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 
 /* ---------- 顶部导航 ---------- */
 .nav {
@@ -29,7 +31,7 @@ body {
 .nav nav { display: flex; gap: 34px; }
 .nav a {
   font-size: 15px;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--muted);
   text-decoration: none;
@@ -37,28 +39,57 @@ body {
   transition: opacity 0.25s ease;
 }
 .nav a:hover { opacity: 0.55; }
-
-/* ---------- 主区域 ---------- */
-.hero {
-  position: relative;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 内页当前导航项：蓝色胶囊高亮（用 ::before 做背景，不改变文字高度/间距） */
+.nav__link { position: relative; transition: opacity 0.25s ease, color 0.25s ease; }
+.nav__link.active { color: #2084e9; font-weight: 600; opacity: 1; }
+.nav__link.active:hover { opacity: 1; }
+.nav__link.active::before {
+  content: ""; position: absolute; inset: -8px -16px;
+  border-radius: 20px; background: rgba(232, 232, 232, 0.56); z-index: -1;
 }
+
+/* ---------- 视图切换 ---------- */
+.view { display: none; }
+.view.is-active { display: block; }
+.view-home.is-active { position: fixed; inset: 0; }
+.view-about.is-active,
+.view-contact.is-active,
+.view-projects.is-active { min-height: 100vh; padding: 150px 0 120px; }
+
+/* ---------- 小幽灵舞台（首页居中）与内页左上角 Logo ---------- */
+.ghost-stage {
+  position: fixed;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 40;
+}
+body:not(.route-home) .ghost-stage { display: none; }   /* 内页不显示首页幽灵 */
+
+.corner-logo {
+  position: fixed;
+  left: 30px; top: 18px;
+  width: 44px; height: auto;
+  z-index: 40; cursor: pointer; display: none;
+  transform-origin: center center;
+  user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
+}
+body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计稿造型 Logo */
+.corner-logo.is-pop { animation: popIn 660ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.corner-logo.is-shrink { animation: shrinkOut 260ms ease-in forwards; }
 
 /* ---------- 小幽灵 ---------- */
 .ghost {
   position: relative;
   width: var(--ghost-w);
   height: calc(var(--ghost-w) * var(--ghost-ratio));
-  transform-origin: center bottom;
-  animation: popIn 760ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center center;
   cursor: pointer;
   z-index: 2; /* 幽灵在漂浮物之上，遮住冒到身后的粒子 */
   user-select: none;
   -webkit-user-select: none;
 }
+/* 入场弹出 / 缩小消失（用 scale 独立属性，不与居中 transform 冲突） */
+.ghost.is-pop { animation: popIn 660ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.ghost.is-shrink { animation: shrinkOut 260ms ease-in forwards; }
 /* 防止连点选中/拖出图片（复制框） */
 .ghost img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
 /* 呼吸浮动 + 鼠标微跟随 都作用在内层，避免与入场 transform 冲突 */
@@ -78,7 +109,7 @@ body {
 .ghost.is-awake .eyes--closed { opacity: 0; }
 .ghost.is-awake .eyes--open   { opacity: 1; }
 
-/* 闭眼短横：设计稿原样，按 image_1 中的相对位置摆放 */
+/* 闭眼短横：设计稿原样 */
 .eyes-closed-img {
   position: absolute;
   left: 24%;
@@ -93,8 +124,8 @@ body {
   will-change: transform;
   transition: transform 0.14s ease-out;
 }
-.eye--left  { left: 39.2%; top: 39%;   width: 14.8%; height: auto; }
-.eye--right { left: 60.2%; top: 42.4%; width: 15.3%; height: auto; }
+.eyes--open .eye--left  { left: 26.0%; top: 42.0%; width: 14.8%; height: auto; }
+.eyes--open .eye--right { left: 49.0%; top: 45.7%; width: 15.3%; height: auto; }
 
 /* ---------- 漂浮物：Zzz / 气泡（JS 逐个发射） ---------- */
 .floaters {
@@ -136,10 +167,14 @@ body {
 
 /* ---------- 关键帧 ---------- */
 @keyframes popIn {
-  0%   { transform: scale(0.3);  opacity: 0; }
-  60%  { transform: scale(1.08); opacity: 1; }
-  80%  { transform: scale(0.96); }
-  100% { transform: scale(1);    opacity: 1; }
+  0%   { scale: 0.6;  opacity: 0; }
+  60%  { scale: 1.035; opacity: 1; }
+  80%  { scale: 0.99; }
+  100% { scale: 1;    opacity: 1; }
+}
+@keyframes shrinkOut {
+  0%   { scale: 1; opacity: 1; }
+  100% { scale: 0; opacity: 0; }
 }
 @keyframes bob {
   0%, 100% { translate: 0 0; }
@@ -157,4 +192,48 @@ body {
   .ghost, .ghost__inner { animation: none !important; }
   .p { animation-duration: 1ms; }
 }
+
+/* ---------- 内容容器 & About 排版 ---------- */
+.container { max-width: 1040px; margin: 0 auto; padding: 0 40px; }
+
+.about__name { font-size: 26px; font-weight: 600; color: #32302e; letter-spacing: 0.01em; }
+.about__role { margin-top: 8px; font-size: 15px; color: #32302e; opacity: 0.5; }
+.about__bio { margin-top: 40px; max-width: 880px; }
+.about__bio p { font-size: 16px; line-height: 1.9; color: #32302e; margin-bottom: 22px; }
+.about__bio p:last-child { margin-bottom: 0; }
+.about__quote { opacity: 0.85; }
+
+.about__block { margin-top: 66px; }
+.about__heading {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #b3b1ac; margin-bottom: 20px;
+}
+.rows { list-style: none; }
+.row {
+  display: grid; grid-template-columns: 1.1fr 1.5fr auto;
+  align-items: center; gap: 24px;
+  padding: 15px 0; border-top: 1px solid #f0efed;
+  font-size: 16px; color: #32302e;
+}
+.row__lead { display: flex; align-items: center; gap: 12px; }
+.logo { height: 17px; width: auto; }
+.row__title { font-weight: 500; }
+.row__mid { color: #32302e; opacity: 0.5; }
+.row__date { color: #32302e; opacity: 0.5; text-align: right; white-space: nowrap; }
+.rows--skills .row { grid-template-columns: 88px 1fr; }
+.row__label { color: #32302e; opacity: 0.55; }
+
+.about__cta { margin-top: 72px; display: flex; justify-content: center; }
+.btn-contact {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #2084e9; color: #fff; border: none; border-radius: 28px;
+  padding: 16px 34px; font-size: 16px; font-weight: 500;
+  font-family: inherit; cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.btn-contact:hover { background: #1a74d0; transform: translateY(-1px); }
+.btn-contact__icon { height: 18px; width: auto; }
+
+.page-title { font-size: 40px; font-weight: 600; color: #32302e; }
+.lead { margin-top: 16px; font-size: 16px; line-height: 1.8; color: #32302e; opacity: 0.6; }
 

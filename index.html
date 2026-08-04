@@ -6,37 +6,123 @@
   <title>ZhuChenYu · Portfolio</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="route-home">
+  <!-- 顶部导航（各页持久） -->
   <header class="nav">
     <nav aria-label="主导航">
-      <a href="#about">About Me</a>
-      <a href="#projects">Projects</a>
-      <a href="#contact">Contact</a>
+      <a href="#/about" class="nav__link" data-route="about">About Me</a>
+      <a href="#/projects" class="nav__link" data-route="projects">Projects</a>
+      <a href="#/contact" class="nav__link" data-route="contact">Contact</a>
     </nav>
   </header>
 
-  <main class="hero" id="hero">
-    <!-- Zzz / 气泡：由 JS 逐个发射，按顺序一个个往上冒 -->
+  <!-- 首页的小幽灵舞台（原造型，带睡/醒/跟随/粒子交互） -->
+  <div class="ghost-stage" id="ghostStage">
     <div class="floaters" id="floaters" aria-hidden="true"></div>
-
-    <!-- 小幽灵：白色外轮廓+投影(image_7) 叠 灰色本体(image_6) 常驻，仅切换眼睛 -->
-    <div class="ghost" id="ghost" aria-label="小幽灵吉祥物">
+    <div class="ghost" id="ghost" aria-label="小幽灵吉祥物" role="button" tabindex="0">
       <div class="ghost__inner" id="ghostInner">
         <img class="ghost__halo" src="assets/image_7.png" alt="" />
         <img class="ghost__body" src="assets/image_6.png" alt="小幽灵" />
-        <!-- 闭眼：直接使用设计稿中的双眼短横 -->
         <span class="eyes eyes--closed">
           <img class="eyes-closed-img" src="assets/eyes_closed.png" alt="" />
         </span>
-        <!-- 睁眼：两颗眼珠，跟随鼠标 -->
         <span class="eyes eyes--open">
           <img class="eye eye--left" src="assets/image_9.png" alt="" />
           <img class="eye eye--right" src="assets/image_8.png" alt="" />
         </span>
       </div>
     </div>
+  </div>
 
-    <p class="greeting">Halo!&nbsp;&nbsp;I&apos;m ZhuChenYu</p>
+  <!-- 内页左上角 Logo：设计稿里的幽灵造型（与首页不同），点击返回首页 -->
+  <img class="corner-logo" id="cornerLogo" src="assets/about/corner_ghost.png"
+       alt="返回首页" role="button" tabindex="0" />
+
+  <main>
+    <!-- 首页 -->
+    <section class="view view-home is-active" id="view-home">
+      <p class="greeting">Halo!&nbsp;&nbsp;I&apos;m ZhuChenYu</p>
+    </section>
+
+    <!-- About Me -->
+    <section class="view view-about" id="view-about" aria-hidden="true">
+      <div class="container about">
+        <header class="about__intro">
+          <h1 class="about__name">Halo，我是朱晨宇</h1>
+          <p class="about__role">用户体验设计师</p>
+        </header>
+
+        <div class="about__bio">
+          <p>就读于湖南师范大学设计系数字媒体方向。实习期间，先后在联想的 UIUX 组与百度的 AI 产品组做过一些工作。相比于单纯的产品 or 设计，我更希望自己是一名兼具全局产品观、精细化设计与交互执行力的用户体验设计师。</p>
+          <p>接触 AI 产品后，对设计的看法也有了新的认识，从一味追求设计审美，到 AI 时代我们的产品到底要解决什么样的问题，如何管理 AI 体验设计中的不确定性。进而通过用户洞察、逻辑拆解及跨团队协作，从业务目标和技术可行性出发来推进体验创新。结合自身的设计优势，利用动态视觉建立生动的反馈机制，让静态界面充满节奏感。更能够将理性逻辑与感性美学相融合，推动高品质产品落地。</p>
+          <p class="about__quote">Steve&nbsp;Jobs 曾说，用户不知道自己想要什么，直到你把产品放在他们面前。<br />我相信好的产品，从来都是与用户产生联系，并回馈以各个细节。</p>
+        </div>
+
+        <section class="about__block">
+          <h2 class="about__heading">Experience</h2>
+          <ul class="rows">
+            <li class="row">
+              <span class="row__lead"><img class="logo" src="assets/about/image_5.png" alt="联想" /><span class="row__title">联想</span></span>
+              <span class="row__mid">体验设计实习生</span>
+              <span class="row__date">2025.9 – 2026.4</span>
+            </li>
+            <li class="row">
+              <span class="row__lead"><img class="logo" src="assets/about/baidu_logo.png" alt="百度" /><span class="row__title">百度</span></span>
+              <span class="row__mid">AI 产品经理实习生（设计侧）</span>
+              <span class="row__date">2026.4 – 至今</span>
+            </li>
+          </ul>
+        </section>
+        <section class="about__block">
+          <h2 class="about__heading">Skills</h2>
+          <ul class="rows rows--skills">
+            <li class="row"><span class="row__label">产品</span><span class="row__val">多模态 / 用户心理 / 模型推动 / 功能迭代 / 需求挖掘 / 服务蓝图 / 用户体验地图…</span></li>
+            <li class="row"><span class="row__label">视频</span><span class="row__val">AfterEffects / Premiere / Protopie / Spline / Rive</span></li>
+            <li class="row"><span class="row__label">二维</span><span class="row__val">Figma / Illustrator / Photoshop</span></li>
+            <li class="row"><span class="row__label">三维</span><span class="row__val">Zbrush / Blender / 3DS Max</span></li>
+            <li class="row"><span class="row__label">AI</span><span class="row__val">IDE 类 / 视觉生成类</span></li>
+          </ul>
+        </section>
+
+        <section class="about__block">
+          <h2 class="about__heading">Education</h2>
+          <ul class="rows">
+            <li class="row">
+              <span class="row__lead"><span class="row__title">湖南城市学院</span></span>
+              <span class="row__mid">环境设计 · 学士</span>
+              <span class="row__date">2022 – 2024</span>
+            </li>
+            <li class="row">
+              <span class="row__lead"><span class="row__title">湖南师范大学</span></span>
+              <span class="row__mid">数字媒体设计 · 硕士</span>
+              <span class="row__date">2024 – 2027</span>
+            </li>
+          </ul>
+        </section>
+
+        <div class="about__cta">
+          <button class="btn-contact" type="button" data-route="contact">
+            联系我吧！<img class="btn-contact__icon" src="assets/about/image_10.png" alt="" />
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact（占位，待设计稿） -->
+    <section class="view view-contact" id="view-contact" aria-hidden="true">
+      <div class="container">
+        <h1 class="page-title">Contact</h1>
+        <p class="lead">这一页的设计稿还没给我，先占个位。给我 Contact 的设计稿我就来做。</p>
+      </div>
+    </section>
+
+    <!-- Projects（占位，待设计稿） -->
+    <section class="view view-projects" id="view-projects" aria-hidden="true">
+      <div class="container">
+        <h1 class="page-title">Projects</h1>
+        <p class="lead">这一页的设计稿还没给我，先占个位。</p>
+      </div>
+    </section>
   </main>
 
   <script src="js/main.js"></script>
