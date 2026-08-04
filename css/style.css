@@ -52,7 +52,7 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .view { display: none; }
 .view.is-active { display: block; }
 .view-home.is-active { position: fixed; inset: 0; }
-.view-about.is-active,
+.view-about.is-active { min-height: 100vh; padding: 220px 0 120px; }
 .view-contact.is-active,
 .view-projects.is-active { min-height: 100vh; padding: 150px 0 120px; }
 
@@ -194,45 +194,46 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 }
 
 /* ---------- 内容容器 & About 排版 ---------- */
-.container { max-width: 1040px; margin: 0 auto; padding: 0 40px; }
+.container { max-width: 700px; margin: 0 auto; padding: 0 24px; }
 
-.about__name { font-size: 26px; font-weight: 600; color: #32302e; letter-spacing: 0.01em; }
-.about__role { margin-top: 8px; font-size: 15px; color: #32302e; opacity: 0.5; }
-.about__bio { margin-top: 40px; max-width: 880px; }
-.about__bio p { font-size: 16px; line-height: 1.9; color: #32302e; margin-bottom: 22px; }
+.about__name { font-size: 21px; font-weight: 600; color: #32302e; }
+.about__role { margin-top: 8px; font-size: 14px; color: #32302e; opacity: 0.5; }
+.about__bio { position: relative; margin-top: 38px; }
+.about__bio p { font-size: 14px; line-height: 1.9; color: #32302e; margin-bottom: 20px; }
 .about__bio p:last-child { margin-bottom: 0; }
-.about__quote { opacity: 0.85; }
 
-.about__block { margin-top: 66px; }
-.about__heading {
-  font-size: 13px; font-weight: 600; letter-spacing: 0.14em;
-  text-transform: uppercase; color: #b3b1ac; margin-bottom: 20px;
-}
+/* 蓝色小方块：与自我介绍右边、底部对齐 */
+.about__square { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; background: #2084e9; }
+
+.about__block { margin-top: 84px; }
+.about__heading { font-size: 14px; font-weight: 400; color: #4b4b4b; margin-bottom: 18px; }
 .rows { list-style: none; }
 .row {
-  display: grid; grid-template-columns: 1.1fr 1.5fr auto;
-  align-items: center; gap: 24px;
-  padding: 15px 0; border-top: 1px solid #f0efed;
-  font-size: 16px; color: #32302e;
+  display: grid; grid-template-columns: 120px auto 1fr;
+  align-items: center; gap: 16px;
+  padding: 12px 0;
+  font-size: 14px; color: #32302e;
 }
-.row__lead { display: flex; align-items: center; gap: 12px; }
-.logo { height: 17px; width: auto; }
-.row__title { font-weight: 500; }
+.row__lead { display: flex; align-items: center; gap: 10px; }
+.logo { width: 52px; height: 16px; object-fit: contain; object-position: left center; }
+.row__title { font-weight: 400; }
 .row__mid { color: #32302e; opacity: 0.5; }
-.row__date { color: #32302e; opacity: 0.5; text-align: right; white-space: nowrap; }
-.rows--skills .row { grid-template-columns: 88px 1fr; }
-.row__label { color: #32302e; opacity: 0.55; }
+.row__date { color: #32302e; text-align: right; white-space: nowrap; }
+/* Skills：右侧内容右对齐；行距更紧凑 */
+.rows--skills .row { grid-template-columns: 72px 1fr; padding: 7px 0; }
+.row__label { color: #32302e; }
+.rows--skills .row__val { text-align: right; }
 
-.about__cta { margin-top: 72px; display: flex; justify-content: center; }
+.about__cta { margin-top: 140px; display: flex; justify-content: center; }
 .btn-contact {
-  display: inline-flex; align-items: center; gap: 10px;
-  background: #2084e9; color: #fff; border: none; border-radius: 28px;
-  padding: 16px 34px; font-size: 16px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 9px;
+  background: #2084e9; color: #fff; border: none; border-radius: 22px;
+  padding: 11px 26px; font-size: 14px; font-weight: 500;
   font-family: inherit; cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease;
 }
 .btn-contact:hover { background: #1a74d0; transform: translateY(-1px); }
-.btn-contact__icon { height: 18px; width: auto; }
+.btn-contact__icon { height: 15px; width: auto; }
 
 .page-title { font-size: 40px; font-weight: 600; color: #32302e; }
 .lead { margin-top: 16px; font-size: 16px; line-height: 1.8; color: #32302e; opacity: 0.6; }
