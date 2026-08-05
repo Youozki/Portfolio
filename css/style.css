@@ -12,7 +12,7 @@ html, body { height: 100%; }
 body {
   font-family: "PingFang HK", "PingFang SC", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", Arial, sans-serif;
-  background: #fff;
+  background: #f2f2f2;
   color: var(--ink);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -49,7 +49,7 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
   top: 50%; height: 34px; margin-top: -17px;
   left: 0; width: 0;
   border-radius: 20px;
-  background: rgba(228, 228, 228, 0.4);
+  background: rgba(216, 216, 216, 0.5);
   -webkit-backdrop-filter: blur(10px) saturate(1.4);
   backdrop-filter: blur(10px) saturate(1.4);
   transform-origin: center center;
@@ -73,7 +73,10 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .view-contact.is-active {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
 }
-.view-projects.is-active { min-height: 100vh; padding: 150px 0 120px; }
+.view-projects.is-active {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 130px 0 70px;
+}
 
 /* ---------- 小幽灵舞台（首页居中）与内页左上角 Logo ---------- */
 .ghost-stage {
@@ -284,4 +287,107 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .contact__arrow { width: 38px; height: auto; display: block; }
 .contact__hintText { font-size: 11px; color: #32302e; white-space: nowrap; }
 .has-hint:hover .contact__hint { opacity: 1; transform: translateY(0); }
+
+/* ---------- Projects：翻页式卡片牌堆（尺寸/坐标全部沿用设计稿像素） ---------- */
+.projects { --s: 1; display: flex; justify-content: center; height: calc(567px * var(--s)); }
+/* 舞台按设计稿 979×567 布局，整体等比缩放适配视口 */
+.stage {
+  position: relative;
+  width: 979px; height: 567px;
+  transform: scale(var(--s));
+  transform-origin: 50% 0;
+}
+.deck { position: relative; list-style: none; height: 409px; perspective: 2000px; }
+.card {
+  position: absolute; left: 0; top: 0;
+  width: 979px; height: 409px;
+  border-radius: 21px; overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.07);
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  transition: transform 0.66s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.36s ease 0.3s;
+}
+.card.is-moving { will-change: transform, opacity; }
+.card.no-anim { transition: none !important; }
+/* 入场：位移+缩放与淡入同步（不走常态那条延后的淡出曲线） */
+.card.is-entering { transition: transform 0.6s cubic-bezier(0.22, 0.85, 0.25, 1), opacity 0.38s ease; }
+/* 可见性闸门：未就绪或已离开时整个舞台不参与绘制，任何一帧都不可能露出卡片 */
+.projects.is-hidden { opacity: 0; visibility: hidden; }
+/* 退场：整叠卡片连同 icon 坞一起渐隐 */
+.projects.is-leaving { opacity: 0; transition: opacity 0.2s ease; }
+/* 翻走的那张：向左上被拖离牌堆并淡出（transform 由 JS 写内联值） */
+
+/* 画面层容器：内部按设计稿原始尺寸摆放，再整体缩放到卡片尺寸 */
+.card__art { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.l { position: absolute; }
+.l img, img.l { display: block; -webkit-user-drag: none; }   /* 尺寸一律由内联的设计稿数值决定 */
+.t { margin: 0; white-space: nowrap; font-family: "PingFang SC", "PingFang HK", sans-serif; }
+
+/* 卡片内部样机的纯 CSS 元素（设计稿里本身就是矢量色块） */
+.box-input { border-radius: 10.67px; border: 1.07px solid #fff; background: #fff; }
+.box-tile { width: 45.33px; height: 54.93px; border-radius: 4.27px; border: 0.53px solid rgba(0,0,0,0.06); background: #fff; }
+.tile-label { font-family: Poppins, "PingFang SC", sans-serif; font-size: 6.4px; line-height: 8px; font-weight: 500; color: #000; }
+.dot { width: 2.67px; height: 2.67px; border-radius: 1.07px; background: #ff7733; }
+.chip {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 27.90px;
+  font-family: "PingFang SC", sans-serif; font-size: 6.93px; line-height: 10.20px; color: #fff;
+  white-space: nowrap;
+}
+.chip img { display: block; }
+
+/* 卡片底部信息条：图标 + Futura 标题 + 描述 */
+.card__icon { position: absolute; }
+.card__title { position: absolute; margin: 0; font-family: Futura, "Trebuchet MS", "PingFang SC", sans-serif; font-weight: 700; font-size: 13px; line-height: 25.6px; white-space: nowrap; }
+.card__desc { position: absolute; margin: 0; font-family: "PingFang SC", sans-serif; font-size: 13px; line-height: 16px; }
+/* ---------- 底部 icon 坞：默认只露当前项，hover 展开（设计稿 198×44） ---------- */
+.dock { position: absolute; left: 390.5px; top: 523px; width: 198px; height: 44px; }
+/* 胶囊描边：收起时缩到 50px 宽，始终居中 */
+.dock__pill {
+  position: absolute; top: 0; left: 74px;
+  width: 50px; height: 44px;
+  border: 1px solid #a7a7a7; border-radius: 30px;
+  transition: width 0.34s cubic-bezier(0.4, 0, 0.2, 1) var(--pd, 0.26s), left 0.34s cubic-bezier(0.4, 0, 0.2, 1) var(--pd, 0.26s);
+}
+.dock.is-open .dock__pill { left: 0; width: 198px; --pd: 0s; }
+.dock__list { list-style: none; position: absolute; inset: 0; }
+/* 每个 icon 绝对定位在设计稿槽位；收起时向中心收拢，展开时由中心向两侧展开 */
+.dock__item {
+  position: absolute;
+  transform: translateX(var(--dx));
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s), opacity 0.3s ease var(--d, 0s);
+}
+.dock.is-open .dock__item { transform: translateX(0); opacity: 0.32; }
+.dock__item.is-active { transform: translateX(var(--dx)); opacity: 1; }
+.dock.is-open .dock__item.is-active { transform: translateX(0); opacity: 1; }
+.dock.is-open .dock__item:hover { opacity: 1; }
+/* 收起状态换卡：icon 顺着卡片方向滚出 / 反方向滚入 */
+.dock__item.roll-out { animation: iconOut 0.44s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.dock__item.roll-in { animation: iconIn 0.44s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes iconOut {
+  from { transform: translateX(var(--dx)) translateY(0); opacity: 1; }
+  to { transform: translateX(var(--dx)) translateY(calc(var(--dir, -1) * 150%)); opacity: 0; }
+}
+@keyframes iconIn {
+  from { transform: translateX(var(--dx)) translateY(calc(var(--dir, -1) * -150%)); opacity: 0; }
+  to { transform: translateX(var(--dx)) translateY(0); opacity: 1; }
+}
+.dock__btn {
+  display: block; width: 100%; height: 100%;
+  background: none; border: none; padding: 0; cursor: pointer;
+}
+.dock__icon {
+  position: relative; display: block; width: 100%; height: 100%;
+  transform: translateY(var(--pop, 0px));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.dock__btn:hover .dock__icon { --pop: -7px; }        /* 悬停向上弹 */
+.dock__icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .dock__item, .dock__icon, .dock__pill { transition-duration: 1ms !important; }
+}
 

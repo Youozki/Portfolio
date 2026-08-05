@@ -135,12 +135,110 @@
       </div>
     </section>
 
-    <!-- Projects（占位，待设计稿） -->
+    <!-- Projects：翻页式卡片牌堆 + 收缩式 icon 坞（结构由 js/main.js 装配） -->
     <section class="view view-projects" id="view-projects" aria-hidden="true">
-      <div class="container">
-        <h1 class="page-title">Projects</h1>
-        <p class="lead">这一页的设计稿还没给我，先占个位。</p>
+      <div class="projects" id="projects">
+        <div class="stage">
+          <ul class="deck" id="deck"></ul>
+          <nav class="dock" id="dock" aria-label="项目切换"></nav>
+        </div>
       </div>
+
+      <!-- 以下模板为各卡片的画面层，坐标/尺寸直接沿用设计稿像素值 -->
+      <template id="tpl-terabox">
+        <img class="l" style="left:218.17px;top:61.02px;width:118.25px;height:103.75px" src="assets/projects/terabox/image_1.webp" alt="" />
+        <div class="l" style="left:206.37px;top:126.92px;width:533.26px;height:141.85px">
+          <img class="l" style="left:1.07px;top:94.32px;width:531.66px;height:47.74px" src="assets/projects/terabox/image_2.webp" alt="" />
+          <div class="l box-input" style="left:0;top:0;width:533.26px;height:108.01px"></div>
+          <p class="l t" style="left:10.67px;top:10.67px;font-size:8px;line-height:12.8px;color:#000">创作一张新图吧</p>
+          <img class="l" style="left:477.70px;top:85.22px;width:13px;height:13px" src="assets/projects/terabox/image_3.webp" alt="" />
+          <div class="l" style="left:503.40px;top:82.66px;width:17.6px;height:17.6px">
+            <img class="l" style="left:0;top:0;width:17.85px;height:17.85px" src="assets/projects/terabox/image_4.webp" alt="" />
+            <img class="l" style="left:3.30px;top:3.46px;width:8.19px;height:10.92px" src="assets/projects/terabox/image_5.webp" alt="" />
+          </div>
+        </div>
+        <div class="l" style="left:217.57px;top:212.24px;width:12.8px;height:12.8px">
+          <img class="l" style="left:6.41px;top:2.67px;width:1px;height:7.47px" src="assets/projects/terabox/image_6.webp" alt="" />
+          <img class="l" style="left:2.67px;top:6.40px;width:7.47px;height:1px" src="assets/projects/terabox/image_7.webp" alt="" />
+        </div>
+        <img class="l" style="left:708.30px;top:219.17px;width:93.32px;height:95.23px" src="assets/projects/terabox/image_8.webp" alt="" />
+        <div class="l chip" style="left:217.04px;top:242.10px;width:60px;height:16.4px;border-radius:5.33px">
+          <img style="width:8.53px;height:8.53px;margin-right:2.13px" src="assets/projects/terabox/image_10.webp" alt="" />
+          <span>选择项目</span>
+          <img style="width:6.4px;height:6.4px;margin-left:4.27px" src="assets/projects/terabox/image_11.webp" alt="" />
+        </div>
+        <div class="l chip" style="left:278.89px;top:242.10px;width:60px;height:16.4px">
+          <img style="width:8.53px;height:8.53px;margin-right:2.13px" src="assets/projects/terabox/image_12.webp" alt="" />
+          <span>召唤专家</span>
+          <img style="width:6.4px;height:6.4px;margin-left:4.27px" src="assets/projects/terabox/image_11.webp" alt="" />
+        </div>
+        <div class="l chip" style="left:666.04px;top:242.10px;width:62.6px;height:16.4px;padding:0 5.33px">
+          <span>GLM-5.3</span>
+          <span style="color:#d7d7d7;margin-left:4.27px">高</span>
+          <img style="width:6.4px;height:6.4px;margin-left:4.27px" src="assets/projects/terabox/image_11.webp" alt="" />
+        </div>
+        <img class="l" style="left:0.53px;top:254.18px;width:945.47px;height:141.50px" src="assets/projects/terabox/image_9.webp" alt="" />
+      </template>
+      <template id="tpl-oreate">
+        <div class="l" style="left:299.51px;top:86.39px;width:285.48px;height:203.66px">
+          <img class="l" style="left:152.51px;top:40.53px;width:132.97px;height:132.97px" src="assets/projects/oreate/image_1.webp" alt="" />
+          <div class="l" style="left:5.33px;top:0;width:178.11px;height:107.18px">
+            <img class="l" style="left:-16.01px;top:-20.51px;width:214.88px;height:148.59px" src="assets/projects/oreate/image_2.webp" alt="" />
+            <p class="l t" style="left:12.80px;top:10.67px;font-size:8.53px;line-height:14.93px;font-weight:600;color:#000">Oreate AI</p>
+            <div class="l" style="left:12.80px;top:34.13px;width:152.51px;height:54.93px">
+              <div class="l box-tile" style="left:0;top:0"></div>
+              <div class="l box-tile" style="left:53.86px;top:0"></div>
+              <div class="l box-tile" style="left:107.18px;top:0"></div>
+              <div class="l" style="left:14.93px;top:9.60px;width:14.93px;height:14.93px">
+                <img class="l" style="left:2.13px;top:3.60px;width:3.73px" src="assets/projects/oreate/image_4.webp" alt="" />
+                <img class="l" style="left:2.13px;top:6.53px;width:3.73px" src="assets/projects/oreate/image_4.webp" alt="" />
+                <img class="l" style="left:2.13px;top:9.47px;width:10.67px" src="assets/projects/oreate/image_3.webp" alt="" />
+                <img class="l" style="left:2.13px;top:12.40px;width:10.67px" src="assets/projects/oreate/image_3.webp" alt="" />
+                <span class="l dot" style="left:7.47px;top:2.67px"></span>
+                <span class="l dot" style="left:10.67px;top:2.67px"></span>
+                <img class="l" style="left:10.14px;top:3.73px;width:1.07px;height:2.93px" src="assets/projects/oreate/image_5.webp" alt="" />
+                <img class="l" style="left:13.34px;top:3.73px;width:1.07px;height:2.93px" src="assets/projects/oreate/image_5.webp" alt="" />
+              </div>
+              <div class="l" style="left:69.78px;top:9.60px;width:11.88px;height:11.73px">
+                <img class="l" style="left:0;top:0;width:11.88px;height:11.73px" src="assets/projects/oreate/image_7.webp" alt="" />
+                <img class="l" style="left:9.50px;top:4.46px;height:7.13px" src="assets/projects/oreate/image_6.webp" alt="" />
+              </div>
+              <img class="l" style="left:122.07px;top:9.53px;width:14.50px;height:13.75px" src="assets/projects/oreate/image_8.webp" alt="" />
+              <p class="l t tile-label" style="left:11.20px;top:36.26px">Create</p>
+              <p class="l t tile-label" style="left:66.66px;top:36.26px">Agent</p>
+              <p class="l t tile-label" style="left:120.52px;top:36.26px">Essay</p>
+            </div>
+          </div>
+          <img class="l" style="left:51.42px;top:70.44px;width:219.95px;height:161.71px" src="assets/projects/oreate/image_9.webp" alt="" />
+          <div class="l" style="left:0;top:132.25px;width:83.35px;height:31.77px">
+            <img class="l" style="left:-10.76px;top:-4.76px;width:110.38px;height:64.08px" src="assets/projects/oreate/image_10.webp" alt="" />
+            <p class="l t" style="left:19.39px;top:7.84px;font-size:6.60px;line-height:6.84px;font-weight:600;color:#222">Original:100%</p>
+            <span class="l" style="left:8.25px;top:19.39px;width:66.85px;height:3.3px;border-radius:41.26px;background:#ffdac7"></span>
+          </div>
+        </div>
+        <img class="l" style="left:492.89px;top:89.28px;width:181.38px;height:139.64px" src="assets/projects/oreate/image_13.webp" alt="" />
+        <img class="l" style="left:0.50px;top:277.09px;width:945.50px;height:118.50px" src="assets/projects/oreate/image_11.webp" alt="" />
+      </template>
+      <template id="tpl-companion">
+        <div class="l" style="left:202.43px;top:85.32px;width:541.04px;height:225.43px">
+          <img class="l" style="left:-2.86px;top:-2.91px;width:546.75px;height:231.25px" src="assets/projects/companion/image_1.webp" alt="" />
+          <span class="l" style="left:144.10px;top:10.56px;width:254.13px;height:159.09px;background:#fff"></span>
+          <img class="l" style="left:246.04px;top:73.05px;width:50.23px;height:12.74px" src="assets/projects/companion/image_2.webp" alt="" />
+          <img class="l" style="left:261.50px;top:93.21px;width:18.13px;height:18.13px;border-radius:11.20px;background:#000" src="assets/projects/companion/image_3.webp" alt="" />
+        </div>
+        <img class="l" style="left:0.53px;top:277.08px;width:769.96px;height:118.74px" src="assets/projects/companion/image_4.webp" alt="" />
+      </template>
+      <template id="tpl-justpaper">
+        <div class="l" style="left:381.28px;top:25.06px;width:183.25px;height:403.14px">
+          <img class="l" style="left:-5.88px;top:14.32px;width:195px;height:374.50px" src="assets/projects/justpaper/image_1.webp" alt="" />
+          <span class="l" style="left:1.07px;top:124.79px;width:180.77px;height:277.29px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.72) 96.29%)"></span>
+        </div>
+        <img class="l" style="left:0.53px;top:245.50px;width:945.47px;height:150.25px" src="assets/projects/justpaper/image_2.webp" alt="" />
+      </template>
+      <template id="tpl-practices">
+        <img class="l" style="left:0;top:0;width:946px;height:400px" src="assets/projects/practices/image_1.webp" alt="" />
+        <img class="l" style="left:0;top:272.36px;width:946px;height:127.75px" src="assets/projects/practices/image_2.webp" alt="" />
+      </template>
     </section>
   </main>
 
