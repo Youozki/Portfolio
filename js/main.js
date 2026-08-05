@@ -87,7 +87,7 @@
     window.scrollTo(0, 0);
     // 离开首页时清空残留粒子，避免切回首页时堆积
     if (r !== 'home' && floaters) floaters.replaceChildren();
-    if (r === 'about') requestAnimationFrame(enterReveal);
+    if (r === 'about' || r === 'contact') requestAnimationFrame(enterReveal);
   }
   function popEl(el) {
     if (!el) return;
@@ -205,7 +205,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
 
   /* ---------------- 正文逐行渐显 + 底部偏外文字淡化 ---------------- */
-  const REVEAL_SEL = '.view-about .about__name, .view-about .about__role, .view-about .about__bio > p, .view-about .about__heading, .view-about .row, .view-about .about__cta';
+  const REVEAL_SEL = '.view.is-active .about__name, .view.is-active .about__role, .view.is-active .about__bio > p, .view.is-active .about__heading, .view.is-active .row, .view.is-active .about__cta, .view.is-active .contact__note, .view.is-active .contact__item';
   function revealEls() { return Array.prototype.slice.call(document.querySelectorAll(REVEAL_SEL)); }
   // 元素自身的基础透明度（"用户体验设计师"本就偏浅，与"体验设计实习生"一致）
   function baseOp(el) { return el.classList.contains('about__role') ? 0.5 : 1; }
@@ -218,7 +218,7 @@
     return Math.max(0.12, 1 - (c - vh * 0.8) / (vh * 0.28));
   }
   function scrollReveal() {
-    if (route !== 'about') return;
+    if (route === 'home') return;
     revealEls().forEach((el) => { el.style.opacity = (opacityFor(el) * baseOp(el)).toFixed(3); });
   }
   // 进入 About：逐行快速渐显（较快，仅作视觉过渡），随后交给滚动淡化

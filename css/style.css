@@ -70,7 +70,9 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .view.is-active { display: block; }
 .view-home.is-active { position: fixed; inset: 0; }
 .view-about.is-active { min-height: 100vh; padding: 220px 0 120px; }
-.view-contact.is-active,
+.view-contact.is-active {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+}
 .view-projects.is-active { min-height: 100vh; padding: 150px 0 120px; }
 
 /* ---------- 小幽灵舞台（首页居中）与内页左上角 Logo ---------- */
@@ -254,4 +256,32 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 
 .page-title { font-size: 40px; font-weight: 600; color: #32302e; }
 .lead { margin-top: 16px; font-size: 16px; line-height: 1.8; color: #32302e; opacity: 0.6; }
+
+/* ---------- Contact ---------- */
+.contact { text-align: center; }
+.contact__note { font-size: 13px; color: #000; }
+.contact__row {
+  list-style: none; margin-top: 46px;
+  display: flex; justify-content: center; align-items: flex-start;
+  gap: 58px;
+}
+.contact__item {
+  position: relative;
+  font-size: 15px; color: #32302e; letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.has-hint { cursor: default; }
+/* hover 才出现的箭头 + 说明文字 */
+.contact__hint {
+  position: absolute; top: 130%;
+  display: flex; align-items: center; gap: 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(4px);
+}
+.contact__hint--wechat { left: -66px; }
+.contact__hint--xhs { left: 96px; }
+.contact__arrow { width: 38px; height: auto; display: block; }
+.contact__hintText { font-size: 11px; color: #32302e; white-space: nowrap; }
+.has-hint:hover .contact__hint { opacity: 1; transform: translateY(0); }
 
