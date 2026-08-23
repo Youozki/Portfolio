@@ -93,6 +93,7 @@ body:not(.route-home) .ghost-stage { display: none; }   /* 内页不显示首页
   z-index: 40; cursor: pointer; display: none;
   transform-origin: center center;
   user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
+  transition: opacity 0.18s ease;
 }
 body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计稿造型 Logo */
 .corner-logo.is-pop { animation: popIn 660ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -389,5 +390,85 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 
 @media (prefers-reduced-motion: reduce) {
   .card, .dock__item, .dock__icon, .dock__pill { transition-duration: 1ms !important; }
+}
+
+/* ---------------- 作品内页 ---------------- */
+/* 设计稿里的 UI 截图用的是 Inter / Roboto，macOS 上没有这两个字族，
+   缺字时回退字体宽度不同会把小标签挤出框，所以自带 latin 子集 */
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../assets/fonts/inter-latin-400.woff2") format("woff2"); }
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("../assets/fonts/inter-latin-500.woff2") format("woff2"); }
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("../assets/fonts/inter-latin-600.woff2") format("woff2"); }
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../assets/fonts/inter-latin-700.woff2") format("woff2"); }
+@font-face { font-family: Roboto; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../assets/fonts/roboto-latin-400.woff2") format("woff2"); }
+@font-face { font-family: Roboto; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("../assets/fonts/roboto-latin-500.woff2") format("woff2"); }
+/* 内页只留正文：顶部导航直接不出现，角标小幽灵渐隐（别硬切） */
+body.route-case-companion .nav { display: none; }
+body.route-case-companion .corner-logo { opacity: 0; pointer-events: none; }
+body.route-case-companion { background: #f7f7f7; }
+
+.view-case { opacity: 0; transition: opacity 0.32s ease; }
+.view-case.is-active { display: block; position: relative; }
+/* 设计稿画布：1920 宽整体等比缩放，外层高度按缩放后取值以保留滚动长度 */
+.case-doc {
+  width: 1920px; height: 8944px;
+  transform: scale(var(--cs, 1));
+  transform-origin: 0 0;
+  /* 与设计稿导出时所依赖的默认样式对齐：行高 1.5、无字族继承、边框默认灰 */
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", sans-serif;
+  line-height: 1.5;
+}
+.case-doc, .case-doc * { border-color: #e5e7eb; }
+/* 图片按设计稿写死的宽高显示，不要被父级宽度夹小（否则框里的照片填不满） */
+.case-doc img { display: block; max-width: none; }
+/* 底部"下个作品"卡片可点击 */
+.case-doc .case-next {
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.22, 0.85, 0.25, 1), box-shadow 0.4s ease;
+}
+.case-doc .case-next:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16); }
+
+/* 左侧章节导航：固定在视口，与正文同一缩放系数 */
+.case-nav {
+  position: fixed; top: 0; left: 0; z-index: 20;
+  width: 175px; height: 421.09px;
+  transform: scale(var(--cs, 1)) translate(36px, 51.14px);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.case-nav.is-visible { pointer-events: auto; }
+.case-nav.no-anim .case-nav__item { transition: none !important; }
+.case-nav__item {
+  position: absolute; left: 0; width: 128.15px;
+  margin: 0; padding: 0; border: none; background: none; text-align: left;
+  font-family: "PingFang HK", "PingFang SC", sans-serif;
+  font-size: 20.67px; line-height: 26.18px; white-space: nowrap;
+  color: #807f7f; font-weight: 400; cursor: pointer;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.5s ease var(--d, 0s), transform 0.5s cubic-bezier(0.22, 0.85, 0.25, 1) var(--d, 0s),
+    color 0.3s ease;
+}
+.case-nav.is-visible .case-nav__item { opacity: 1; transform: none; }
+.case-nav__item:hover { color: #414141; }
+.case-nav__item.is-current { color: #414141; font-weight: 600; }
+.case-nav__item:nth-of-type(2) { top: 179.13px; }
+.case-nav__item:nth-of-type(3) { top: 232.87px; }
+.case-nav__item:nth-of-type(4) { top: 286.61px; }
+.case-nav__item:nth-of-type(5) { top: 340.35px; }
+.case-nav__item:nth-of-type(6) { top: 394.09px; }
+.case-nav__back { top: 0; left: 46.85px; width: 81.3px; }
+.case-nav__icon {
+  position: absolute; left: -38.29px; top: 5.72px;
+  width: 16.59px; height: 15.29px; display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-nav__item, .view-case, .case-doc .case-next { transition-duration: 1ms !important; }
 }
 

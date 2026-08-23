@@ -15,8 +15,9 @@
     about: document.getElementById('view-about'),
     contact: document.getElementById('view-contact'),
     projects: document.getElementById('view-projects'),
+    'case-companion': document.getElementById('view-case-companion'),
   };
-  const ROUTES = ['home', 'about', 'contact', 'projects'];
+  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion'];
   let route = 'home';
   let transitioning = false;
   let scrolledExpand = false;
@@ -88,7 +89,18 @@
     // 离开首页时清空残留粒子，避免切回首页时堆积
     if (r !== 'home' && floaters) floaters.replaceChildren();
     if (r === 'about' || r === 'contact') requestAnimationFrame(enterReveal);
+    if (r.indexOf('case-') === 0) {
+      fitCase();
+      resetCaseNav();
+      fadeInView(views[r]);
+      // 内页不显示顶部胶囊，且回到外层页面时让它从中间重新弹开，而不是从旧位置平移过来
+      if (pill) pill.classList.remove('is-visible', 'is-expand', 'is-collapse');
+      scrolledExpand = false;
+      // is-pop 动画会用 fill 锁住 opacity，压过内页的渐隐规则，进内页前先摘掉
+      if (cornerLogo) cornerLogo.classList.remove('is-pop', 'is-shrink');
+    }
     if (r === 'projects') {
+      if (pendingCard >= 0) { active = pendingCard; pendingCard = -1; }
       fitStage();
       prepEnter();                          // 同一帧内先藏好，绝不露帧
       setTimeout(playEnter, 140);            // 等转场落定后再放动画
@@ -108,9 +120,23 @@
   }
 
   let leavingProjects = false;
+  let leavingCase = false;
   function navigate(r) {
     if (!ROUTES.includes(r)) r = 'home';
     if (r === route || transitioning) return;
+    // 进作品内页：正文首次进入时才拉取，拉到手再切，避免进去看到空白
+    if (r.indexOf('case-') === 0 && !caseLoaded && !caseFailed) {
+      loadCase().then(() => navigate(r));
+      return;
+    }
+    // 离开作品内页：正文先整体渐隐
+    if (route.indexOf('case-') === 0 && canAnim && !leavingCase) {
+      leavingCase = true;
+      const v = views[route];
+      if (v) v.style.opacity = '0';
+      setTimeout(() => { navigate(r); leavingCase = false; }, 300);
+      return;
+    }
     // 离开 Projects：先让所有卡片渐隐，再走原来的转场
     if (route === 'projects' && canAnim && !leavingProjects && projects) {
       leavingProjects = true;
@@ -131,8 +157,11 @@
       if (mode === 'leave') pillLeave();
       applyRoute(r);
       if (location.hash !== hashOf(r)) location.hash = hashOf(r);
-      if (mode === 'slide') pillSlide(r);
-      else if (mode === 'enter') pillPlace(r);
+      if (mode === 'slide') {
+        // 从作品内页回来：胶囊已经收掉了，直接在原位从中间渐显展开
+        if (from.indexOf('case-') === 0) pillEnter(r);
+        else pillSlide(r);
+      } else if (mode === 'enter') pillPlace(r);
       return;
     }
     transitioning = true;
@@ -344,19 +373,8 @@
   /* ---------------- Projects：翻页式卡片牌堆 + 收缩式 icon 坞 ---------------- */
   // 卡片数据：base 为设计稿原始画板尺寸，其余坐标同样直接取设计稿值
   const PROJECTS = [
-    { id: 'terabox', tpl: 'tpl-terabox', title: 'Terabox', bw: 955.10, bh: 404.78, bg: '#f9f9f9',
-      icon: { src: 'assets/projects/terabox/image_13.webp', x: 40, y: 289.56, w: 22.33, h: 20.32 },
-      ds: 22.0,
-      tx: 71.73, ty: 286.90, color: '#32302e',
-      dx: 40, dy: 338.37, dw: 461, dop: 1,
-      desc: '百度网盘海外版本，主打内容+AI，海外方向强化多模态与AI能力。' },
-    { id: 'oreate', tpl: 'tpl-oreate', title: 'Oreate AI', bw: 946, bh: 395.68, bg: '#f9f9f9',
-      icon: { src: 'assets/projects/oreate/image_12.webp', x: 36.73, y: 288.16, w: 19.73, h: 20.05 },
-      ds: 21.5,
-      tx: 67, ty: 287.84, color: '#32302e',
-      dx: 40, dy: 337.84, dw: 566, dop: 0.75,
-      desc: 'AI全模态内容，快速生成AI图像、视频等多元需求，支持PPT、助力深度研究与写作。' },
     { id: 'companion', tpl: 'tpl-companion', title: 'Companion App', bw: 969.80, bh: 419.48, bg: '#f9f9f9',
+      caseRoute: 'case-companion',
       icon: { src: 'assets/projects/companion/image_5.webp', x: 35.73, y: 272.50, w: 22.29, h: 22.29 },
       ds: 23.0,
       tx: 62.79, ty: 271.89, color: '#32302e',
@@ -369,6 +387,18 @@
       tx: 77.74, ty: 286.27, color: '#fdfdfd',
       dx: 42.74, dy: 331.37, dw: 438, dop: 0.75, dcolor: '#fff',
       desc: '原生笔记软件，结合双屏的产品特点为用户构建笔记使用新体验。' },
+    { id: 'terabox', tpl: 'tpl-terabox', title: 'Terabox', bw: 955.10, bh: 404.78, bg: '#f9f9f9',
+      icon: { src: 'assets/projects/terabox/image_13.webp', x: 40, y: 289.56, w: 22.33, h: 20.32 },
+      ds: 22.0,
+      tx: 71.73, ty: 286.90, color: '#32302e',
+      dx: 40, dy: 338.37, dw: 461, dop: 1,
+      desc: '百度网盘海外版本，主打内容+AI，海外方向强化多模态与AI能力。' },
+    { id: 'oreate', tpl: 'tpl-oreate', title: 'Oreate AI', bw: 946, bh: 395.68, bg: '#f9f9f9',
+      icon: { src: 'assets/projects/oreate/image_12.webp', x: 36.73, y: 288.16, w: 19.73, h: 20.05 },
+      ds: 21.5,
+      tx: 67, ty: 287.84, color: '#32302e',
+      dx: 40, dy: 337.84, dw: 566, dop: 0.75,
+      desc: 'AI全模态内容，快速生成AI图像、视频等多元需求，支持PPT、助力深度研究与写作。' },
     { id: 'practices', tpl: 'tpl-practices', title: 'Practices', bw: 946, bh: 400, bg: '#fff',
       icon: { src: 'assets/projects/practices/image_3.webp', x: 40, y: 294.36, w: 25.51, h: 24.27 },
       ds: 21.5,
@@ -387,6 +417,7 @@
   const FLIP_MS = 680;
   const DEPTH = 3;            // 设计稿只露出 3 层
   let active = 0;
+  let pendingCard = -1;      // 从内页返回时要直接落在哪张卡
   let autoTimer = null;
   let flipping = false;
   let hovering = false;
@@ -616,7 +647,10 @@
       const dx = e.clientX - downX;
       const dy = e.clientY - downY;
       const move = Math.abs(dx) > Math.abs(dy) ? dx : dy;
-      if (Math.abs(move) > 40) (move < 0 ? next() : prev());
+      if (Math.abs(move) > 40) { (move < 0 ? next() : prev()); return; }
+      // 基本没位移就算点击：有内页的卡片点进去
+      const p = PROJECTS[active];
+      if (p && p.caseRoute) navigate(p.caseRoute);
     });
     window.addEventListener('keydown', (e) => {
       if (route !== 'projects') return;
@@ -655,9 +689,108 @@
     closeDock();
   }
 
+  /* ---------------- 作品内页（Companion App） ---------------- */
+  const caseDoc = document.getElementById('caseDoc');
+  const caseNav = document.getElementById('caseNav');
+  const caseItems = caseNav ? Array.prototype.slice.call(caseNav.querySelectorAll('.case-nav__item')) : [];
+  const caseSecs = caseItems.filter((el) => el.dataset.sec).map((el) => Number(el.dataset.sec));
+  const CASE_W = 1920, CASE_H = 8944;
+  let caseLoaded = false, caseLoading = null, caseFailed = false, caseScale = 1, caseScrolled = false;
+
+  // 正文单独成文件，首次进入时以 script 方式加载（fetch 在 file:// 下会被拦，改用 script 才能双击直接打开）
+  function loadCase() {
+    if (caseLoaded) return Promise.resolve();
+    if (!caseLoading) {
+      caseLoading = new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'pages/case-companion.js';
+        s.onload = () => {
+          caseDoc.innerHTML = window.CASE_DOC_COMPANION || '';
+          caseLoaded = !!window.CASE_DOC_COMPANION;
+          const nextCard = document.getElementById('case-next-card');
+          if (nextCard) {
+            nextCard.setAttribute('role', 'link');
+            nextCard.addEventListener('click', () => { pendingCard = 1; navigate('projects'); });
+          }
+          resolve();
+        };
+        s.onerror = () => { caseLoading = null; caseFailed = true; resolve(); };
+        document.head.appendChild(s);
+      });
+    }
+    return caseLoading;
+  }
+  if (caseDoc) {
+    // 到 Projects 页时顺手预取，点卡片进内页就不用等
+    window.addEventListener('load', () => {
+      setTimeout(() => { if (!caseLoaded) loadCase(); }, 1200);
+    });
+  }
+
+  function fitCase() {
+    if (!caseDoc) return;
+    caseScale = document.documentElement.clientWidth / CASE_W;
+    const v = views['case-companion'];
+    v.style.setProperty('--cs', caseScale.toFixed(5));
+    v.style.height = Math.round(CASE_H * caseScale) + 'px';
+  }
+  function fadeInView(v) {
+    if (!v) return;
+    if (!canAnim) { v.style.opacity = '1'; return; }
+    v.style.transition = 'none';
+    v.style.opacity = '0';
+    void v.offsetWidth;
+    v.style.transition = '';
+    requestAnimationFrame(() => { v.style.opacity = '1'; });
+  }
+  // 侧栏一开始不出现，进场时也不做动画；只有用户真的往下滚了才逐行显现
+  function resetCaseNav() {
+    if (!caseNav) return;
+    caseScrolled = false;
+    caseNav.classList.add('no-anim');
+    caseNav.classList.remove('is-visible');
+    caseItems.forEach((el, i) => el.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'));
+    caseItems.forEach((el) => el.classList.remove('is-current'));
+    void caseNav.offsetWidth;                     // 先把隐藏态定住，入场不会闪一下
+    requestAnimationFrame(() => caseNav.classList.remove('no-anim'));
+  }
+  function caseScrollSpy() {
+    if (route.indexOf('case-') !== 0 || !caseNav) return;
+    if (window.scrollY <= 30) caseScrolled = false;
+    if (caseScrolled) caseNav.classList.add('is-visible');
+    else caseNav.classList.remove('is-visible');
+    const line = window.scrollY + window.innerHeight * 0.35;
+    let cur = 0;
+    caseSecs.forEach((y, i) => { if (y * caseScale <= line) cur = i; });
+    caseItems.forEach((el) => el.classList.remove('is-current'));
+    const target = caseItems.filter((el) => el.dataset.sec)[cur];
+    if (target) target.classList.add('is-current');
+  }
+  // 只认真实的滚动输入，避免进场时浏览器恢复滚动位置把侧栏带出来
+  ['wheel', 'touchmove', 'keydown'].forEach((ev) => {
+    window.addEventListener(ev, () => {
+      if (route.indexOf('case-') === 0 && window.scrollY > 30) { caseScrolled = true; caseScrollSpy(); }
+    }, { passive: true });
+  });
+  let caseTick = false;
+  window.addEventListener('scroll', () => {
+    if (caseTick) return;
+    caseTick = true;
+    requestAnimationFrame(() => { caseScrollSpy(); caseTick = false; });
+  }, { passive: true });
+  window.addEventListener('resize', () => { if (route.indexOf('case-') === 0) fitCase(); });
+  caseItems.forEach((el) => {
+    el.addEventListener('click', () => {
+      if (el.hasAttribute('data-back')) { navigate('projects'); return; }
+      const y = Number(el.dataset.sec) * caseScale - window.innerHeight * 0.18;
+      window.scrollTo({ top: Math.max(0, y), behavior: canAnim ? 'smooth' : 'auto' });
+    });
+  });
+
   /* ---------------- 初始化 ---------------- */
   const initial = routeFromHash();
   applyRoute(initial);
-  popEl(initial === 'home' ? ghost : cornerLogo);
+  if (initial.indexOf('case-') === 0) loadCase().then(fitCase);
+  if (initial.indexOf('case-') !== 0) popEl(initial === 'home' ? ghost : cornerLogo);
   if (initial !== 'home') pillEnter(initial);
 })();
