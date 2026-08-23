@@ -408,15 +408,15 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 @font-face { font-family: Roboto; font-style: normal; font-weight: 500; font-display: swap;
   src: url("../assets/fonts/roboto-latin-500.woff2") format("woff2"); }
 /* 内页只留正文：顶部导航直接不出现，角标小幽灵渐隐（别硬切） */
-body.route-case-companion .nav { display: none; }
-body.route-case-companion .corner-logo { opacity: 0; pointer-events: none; }
-body.route-case-companion { background: #f7f7f7; }
+body[class*="route-case-"] .nav { display: none; }
+body[class*="route-case-"] .corner-logo { opacity: 0; pointer-events: none; }
+body[class*="route-case-"] { background: #f7f7f7; }
 
 .view-case { opacity: 0; transition: opacity 0.32s ease; }
 .view-case.is-active { display: block; position: relative; }
 /* 设计稿画布：1920 宽整体等比缩放，外层高度按缩放后取值以保留滚动长度 */
 .case-doc {
-  width: 1920px; height: 8944px;
+  width: 1920px; height: var(--ch, 8944px);
   transform: scale(var(--cs, 1));
   transform-origin: 0 0;
   /* 与设计稿导出时所依赖的默认样式对齐：行高 1.5、无字族继承、边框默认灰 */
@@ -432,7 +432,20 @@ body.route-case-companion { background: #f7f7f7; }
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.22, 0.85, 0.25, 1), box-shadow 0.4s ease;
 }
-.case-doc .case-next:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16); }
+.case-doc .case-next:hover { transform: translateY(-6px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07); }
+/* companion 那张是近黑色卡，0.07 的阴影压在深色上几乎看不见，浮起来像只是往上跳了一下；
+   单独加深阴影，让观感与 justpaper 的浅色卡一致——位移量和时序保持不变 */
+#view-case-companion .case-doc .case-next:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22); }
+
+/* 横向滚动图：藏掉原生滚动条，用设计稿里那根蓝条当可视滚动条 */
+.case-doc .hscroll__view { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+.case-doc .hscroll__view::-webkit-scrollbar { display: none; }
+.case-doc .hscroll__bar { border-radius: 2.75px; background-color: #dddddd; }
+.case-doc .hscroll__thumb {
+  display: block; position: absolute; top: 0; left: 0; height: 100%;
+  border-radius: 2.75px; background-color: #2084e9; cursor: grab; touch-action: none;
+}
+.case-doc .hscroll__thumb.is-drag { cursor: grabbing; }
 
 /* 左侧章节导航：固定在视口，与正文同一缩放系数 */
 .case-nav {

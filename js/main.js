@@ -16,8 +16,9 @@
     contact: document.getElementById('view-contact'),
     projects: document.getElementById('view-projects'),
     'case-companion': document.getElementById('view-case-companion'),
+    'case-justpaper': document.getElementById('view-case-justpaper'),
   };
-  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion'];
+  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion', 'case-justpaper'];
   let route = 'home';
   let transitioning = false;
   let scrolledExpand = false;
@@ -90,8 +91,8 @@
     if (r !== 'home' && floaters) floaters.replaceChildren();
     if (r === 'about' || r === 'contact') requestAnimationFrame(enterReveal);
     if (r.indexOf('case-') === 0) {
-      fitCase();
-      resetCaseNav();
+      fitCase(r);
+      resetCaseNav(r);
       fadeInView(views[r]);
       // 内页不显示顶部胶囊，且回到外层页面时让它从中间重新弹开，而不是从旧位置平移过来
       if (pill) pill.classList.remove('is-visible', 'is-expand', 'is-collapse');
@@ -125,8 +126,8 @@
     if (!ROUTES.includes(r)) r = 'home';
     if (r === route || transitioning) return;
     // 进作品内页：正文首次进入时才拉取，拉到手再切，避免进去看到空白
-    if (r.indexOf('case-') === 0 && !caseLoaded && !caseFailed) {
-      loadCase().then(() => navigate(r));
+    if (r.indexOf('case-') === 0 && CASES[r] && !CASES[r].loaded && !CASES[r].failed) {
+      loadCase(r).then(() => navigate(r));
       return;
     }
     // 离开作品内页：正文先整体渐隐
@@ -382,23 +383,24 @@
       desc: 'Tiko是一位智能协作助手，能够帮助用户更快速地获取信息、完成决策并简化日常工作流程，为用户带来更顺畅的使用体验。' },
     { id: 'justpaper', tpl: 'tpl-justpaper', title: 'Just Paper', bw: 946, bh: 395.68,
       bg: 'linear-gradient(180deg,#2d2d2d -79.86%,#000 100.08%)',
+      caseRoute: 'case-justpaper',
       icon: { src: 'assets/projects/justpaper/image_3.webp', x: 40, y: 282, w: 27.28, h: 26 },
       ds: 21.5,
       tx: 77.74, ty: 286.27, color: '#fdfdfd',
       dx: 42.74, dy: 331.37, dw: 438, dop: 0.75, dcolor: '#fff',
       desc: '原生笔记软件，结合双屏的产品特点为用户构建笔记使用新体验。' },
-    { id: 'terabox', tpl: 'tpl-terabox', title: 'Terabox', bw: 955.10, bh: 404.78, bg: '#f9f9f9',
-      icon: { src: 'assets/projects/terabox/image_13.webp', x: 40, y: 289.56, w: 22.33, h: 20.32 },
-      ds: 22.0,
-      tx: 71.73, ty: 286.90, color: '#32302e',
-      dx: 40, dy: 338.37, dw: 461, dop: 1,
-      desc: '百度网盘海外版本，主打内容+AI，海外方向强化多模态与AI能力。' },
     { id: 'oreate', tpl: 'tpl-oreate', title: 'Oreate AI', bw: 946, bh: 395.68, bg: '#f9f9f9',
       icon: { src: 'assets/projects/oreate/image_12.webp', x: 36.73, y: 288.16, w: 19.73, h: 20.05 },
       ds: 21.5,
       tx: 67, ty: 287.84, color: '#32302e',
       dx: 40, dy: 337.84, dw: 566, dop: 0.75,
       desc: 'AI全模态内容，快速生成AI图像、视频等多元需求，支持PPT、助力深度研究与写作。' },
+    { id: 'terabox', tpl: 'tpl-terabox', title: 'Terabox', bw: 955.10, bh: 404.78, bg: '#f9f9f9',
+      icon: { src: 'assets/projects/terabox/image_13.webp', x: 40, y: 289.56, w: 22.33, h: 20.32 },
+      ds: 22.0,
+      tx: 71.73, ty: 286.90, color: '#32302e',
+      dx: 40, dy: 338.37, dw: 461, dop: 1,
+      desc: '百度网盘海外版本，主打内容+AI，海外方向强化多模态与AI能力。' },
     { id: 'practices', tpl: 'tpl-practices', title: 'Practices', bw: 946, bh: 400, bg: '#fff',
       icon: { src: 'assets/projects/practices/image_3.webp', x: 40, y: 294.36, w: 25.51, h: 24.27 },
       ds: 21.5,
@@ -689,50 +691,112 @@
     closeDock();
   }
 
-  /* ---------------- 作品内页（Companion App） ---------------- */
-  const caseDoc = document.getElementById('caseDoc');
-  const caseNav = document.getElementById('caseNav');
-  const caseItems = caseNav ? Array.prototype.slice.call(caseNav.querySelectorAll('.case-nav__item')) : [];
-  const caseSecs = caseItems.filter((el) => el.dataset.sec).map((el) => Number(el.dataset.sec));
-  const CASE_W = 1920, CASE_H = 8944;
-  let caseLoaded = false, caseLoading = null, caseFailed = false, caseScale = 1, caseScrolled = false;
+  /* ---------------- 作品内页 ---------------- */
+  // 每个内页一份配置：正文脚本、挂载的全局变量、设计稿画布高度、底部“下个作品”指向的卡片
+  const CASES = {
+    'case-companion': { src: 'pages/case-companion.js', key: 'CASE_DOC_COMPANION', h: 8944, nextRoute: 'case-justpaper' },
+    'case-justpaper': { src: 'pages/case-justpaper.js', key: 'CASE_DOC_JUSTPAPER', h: 9952, nextId: 'oreate' },
+  };
+  const CASE_W = 1920;
+  let caseScale = 1, caseScrolled = false;
+
+  Object.keys(CASES).forEach((r) => {
+    const c = CASES[r];
+    const v = views[r];
+    c.doc = v ? v.querySelector('.case-doc') : null;
+    c.nav = v ? v.querySelector('.case-nav') : null;
+    c.items = c.nav ? Array.prototype.slice.call(c.nav.querySelectorAll('.case-nav__item')) : [];
+    c.secs = c.items.filter((el) => el.dataset.sec).map((el) => Number(el.dataset.sec));
+    c.loaded = false; c.loading = null; c.failed = false;
+    c.items.forEach((el) => {
+      el.addEventListener('click', () => {
+        if (el.hasAttribute('data-back')) { navigate('projects'); return; }
+        const y = Number(el.dataset.sec) * caseScale - window.innerHeight * 0.18;
+        window.scrollTo({ top: Math.max(0, y), behavior: canAnim ? 'smooth' : 'auto' });
+      });
+    });
+  });
 
   // 正文单独成文件，首次进入时以 script 方式加载（fetch 在 file:// 下会被拦，改用 script 才能双击直接打开）
-  function loadCase() {
-    if (caseLoaded) return Promise.resolve();
-    if (!caseLoading) {
-      caseLoading = new Promise((resolve) => {
+  function loadCase(r) {
+    const c = CASES[r];
+    if (!c || c.loaded) return Promise.resolve();
+    if (!c.loading) {
+      c.loading = new Promise((resolve) => {
         const s = document.createElement('script');
-        s.src = 'pages/case-companion.js';
+        s.src = c.src;
         s.onload = () => {
-          caseDoc.innerHTML = window.CASE_DOC_COMPANION || '';
-          caseLoaded = !!window.CASE_DOC_COMPANION;
-          const nextCard = document.getElementById('case-next-card');
+          if (c.doc) c.doc.innerHTML = window[c.key] || '';
+          c.loaded = !!window[c.key];
+          const nextCard = c.doc && c.doc.querySelector('#case-next-card');
           if (nextCard) {
             nextCard.setAttribute('role', 'link');
-            nextCard.addEventListener('click', () => { pendingCard = 1; navigate('projects'); });
+            nextCard.addEventListener('click', () => {
+              // 对方有内页就直接进内页，没有就回牌堆并落在那张卡
+              if (c.nextRoute) { navigate(c.nextRoute); return; }
+              pendingCard = PROJECTS.findIndex((x) => x.id === c.nextId);
+              navigate('projects');
+            });
           }
+          if (c.doc) initHScroll(c.doc);
           resolve();
         };
-        s.onerror = () => { caseLoading = null; caseFailed = true; resolve(); };
+        s.onerror = () => { c.loading = null; c.failed = true; resolve(); };
         document.head.appendChild(s);
       });
     }
-    return caseLoading;
+    return c.loading;
   }
-  if (caseDoc) {
-    // 到 Projects 页时顺手预取，点卡片进内页就不用等
-    window.addEventListener('load', () => {
-      setTimeout(() => { if (!caseLoaded) loadCase(); }, 1200);
+  // 横向滚动图：设计稿里图下方那根蓝条就是可视滚动条，滑块宽度按可视/总宽比例，且可直接拖
+  function initHScroll(doc) {
+    Array.prototype.forEach.call(doc.querySelectorAll('[data-hscroll]'), (view) => {
+      const bar = doc.querySelector('[data-hscroll-bar="' + view.getAttribute('data-hscroll') + '"]');
+      const thumb = bar && bar.querySelector('.hscroll__thumb');
+      if (!thumb) return;
+      let thumbW = 0;
+      function sync() {
+        const max = view.scrollWidth - view.clientWidth;
+        thumbW = Math.max(bar.clientWidth * (view.clientWidth / view.scrollWidth), 12);
+        thumb.style.width = thumbW.toFixed(2) + 'px';
+        const p = max > 0 ? view.scrollLeft / max : 0;
+        thumb.style.transform = 'translateX(' + (p * (bar.clientWidth - thumbW)).toFixed(2) + 'px)';
+      }
+      view.addEventListener('scroll', sync);
+      window.addEventListener('resize', sync);
+      thumb.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const x0 = e.clientX, from = view.scrollLeft;
+        const max = view.scrollWidth - view.clientWidth;
+        const span = bar.clientWidth - thumbW;
+        thumb.classList.add('is-drag');
+        // 正文整体被 scale 过，指针位移要先除掉缩放系数才是画布上的距离
+        const move = (ev) => {
+          if (span <= 0) return;
+          view.scrollLeft = from + ((ev.clientX - x0) / (caseScale || 1) / span) * max;
+        };
+        const up = () => {
+          thumb.classList.remove('is-drag');
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      });
+      sync();
     });
   }
+  // 到 Projects 页时顺手预取，点卡片进内页就不用等
+  window.addEventListener('load', () => {
+    setTimeout(() => { Object.keys(CASES).forEach(loadCase); }, 1200);
+  });
 
-  function fitCase() {
-    if (!caseDoc) return;
+  function fitCase(r) {
+    const c = CASES[r];
+    if (!c || !views[r]) return;
     caseScale = document.documentElement.clientWidth / CASE_W;
-    const v = views['case-companion'];
-    v.style.setProperty('--cs', caseScale.toFixed(5));
-    v.style.height = Math.round(CASE_H * caseScale) + 'px';
+    views[r].style.setProperty('--cs', caseScale.toFixed(5));
+    views[r].style.setProperty('--ch', c.h + 'px');
+    views[r].style.height = Math.round(c.h * caseScale) + 'px';
   }
   function fadeInView(v) {
     if (!v) return;
@@ -744,32 +808,34 @@
     requestAnimationFrame(() => { v.style.opacity = '1'; });
   }
   // 侧栏一开始不出现，进场时也不做动画；只有用户真的往下滚了才逐行显现
-  function resetCaseNav() {
-    if (!caseNav) return;
+  function resetCaseNav(r) {
+    const c = CASES[r];
+    if (!c || !c.nav) return;
     caseScrolled = false;
-    caseNav.classList.add('no-anim');
-    caseNav.classList.remove('is-visible');
-    caseItems.forEach((el, i) => el.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'));
-    caseItems.forEach((el) => el.classList.remove('is-current'));
-    void caseNav.offsetWidth;                     // 先把隐藏态定住，入场不会闪一下
-    requestAnimationFrame(() => caseNav.classList.remove('no-anim'));
+    c.nav.classList.add('no-anim');
+    c.nav.classList.remove('is-visible');
+    c.items.forEach((el, i) => el.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'));
+    c.items.forEach((el) => el.classList.remove('is-current'));
+    void c.nav.offsetWidth;                     // 先把隐藏态定住，入场不会闪一下
+    requestAnimationFrame(() => c.nav.classList.remove('no-anim'));
   }
   function caseScrollSpy() {
-    if (route.indexOf('case-') !== 0 || !caseNav) return;
+    const c = CASES[route];
+    if (!c || !c.nav) return;
     if (window.scrollY <= 30) caseScrolled = false;
-    if (caseScrolled) caseNav.classList.add('is-visible');
-    else caseNav.classList.remove('is-visible');
+    if (caseScrolled) c.nav.classList.add('is-visible');
+    else c.nav.classList.remove('is-visible');
     const line = window.scrollY + window.innerHeight * 0.35;
     let cur = 0;
-    caseSecs.forEach((y, i) => { if (y * caseScale <= line) cur = i; });
-    caseItems.forEach((el) => el.classList.remove('is-current'));
-    const target = caseItems.filter((el) => el.dataset.sec)[cur];
+    c.secs.forEach((y, i) => { if (y * caseScale <= line) cur = i; });
+    c.items.forEach((el) => el.classList.remove('is-current'));
+    const target = c.items.filter((el) => el.dataset.sec)[cur];
     if (target) target.classList.add('is-current');
   }
   // 只认真实的滚动输入，避免进场时浏览器恢复滚动位置把侧栏带出来
   ['wheel', 'touchmove', 'keydown'].forEach((ev) => {
     window.addEventListener(ev, () => {
-      if (route.indexOf('case-') === 0 && window.scrollY > 30) { caseScrolled = true; caseScrollSpy(); }
+      if (CASES[route] && window.scrollY > 30) { caseScrolled = true; caseScrollSpy(); }
     }, { passive: true });
   });
   let caseTick = false;
@@ -778,19 +844,12 @@
     caseTick = true;
     requestAnimationFrame(() => { caseScrollSpy(); caseTick = false; });
   }, { passive: true });
-  window.addEventListener('resize', () => { if (route.indexOf('case-') === 0) fitCase(); });
-  caseItems.forEach((el) => {
-    el.addEventListener('click', () => {
-      if (el.hasAttribute('data-back')) { navigate('projects'); return; }
-      const y = Number(el.dataset.sec) * caseScale - window.innerHeight * 0.18;
-      window.scrollTo({ top: Math.max(0, y), behavior: canAnim ? 'smooth' : 'auto' });
-    });
-  });
+  window.addEventListener('resize', () => { if (CASES[route]) fitCase(route); });
 
   /* ---------------- 初始化 ---------------- */
   const initial = routeFromHash();
   applyRoute(initial);
-  if (initial.indexOf('case-') === 0) loadCase().then(fitCase);
+  if (CASES[initial]) loadCase(initial).then(() => fitCase(initial));
   if (initial.indexOf('case-') !== 0) popEl(initial === 'home' ? ghost : cornerLogo);
   if (initial !== 'home') pillEnter(initial);
 })();
