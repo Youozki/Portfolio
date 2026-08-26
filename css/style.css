@@ -27,6 +27,7 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
   display: flex;
   justify-content: center;
   z-index: 10;
+  transition: opacity 0.26s ease;   /* 进内页时和角标小幽灵同步渐隐 */
 }
 .nav nav { position: relative; display: flex; gap: 34px; }
 .nav a {
@@ -63,13 +64,13 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .nav__pill.is-expand { animation: pillExpand 0.46s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .nav__pill.is-collapse { animation: pillCollapse 0.32s ease-in forwards; }
 @keyframes pillExpand { from { transform: scaleX(0.5); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
-@keyframes pillCollapse { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(0.5); opacity: 0; } }
+@keyframes pillCollapse { from { opacity: 1; } to { opacity: 0; } }
 
 /* ---------- 视图切换 ---------- */
 .view { display: none; opacity: 1; transition: opacity 0.25s ease; }
 .view.is-active { display: block; }
 .view-home.is-active { position: fixed; inset: 0; }
-.view-about.is-active { min-height: 100vh; padding: 220px 0 120px; }
+.view-about.is-active { min-height: 100vh; padding: 150px 0 120px; }
 .view-contact.is-active {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
 }
@@ -89,11 +90,11 @@ body:not(.route-home) .ghost-stage { display: none; }   /* 内页不显示首页
 .corner-logo {
   position: fixed;
   left: 30px; top: 18px;
-  width: 44px; height: auto;
+  width: 34.77px; height: 35px;
   z-index: 40; cursor: pointer; display: none;
   transform-origin: center center;
   user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
-  transition: opacity 0.18s ease;
+  transition: opacity 0.26s ease;   /* 与顶部导航同一条时长 */
 }
 body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计稿造型 Logo */
 .corner-logo.is-pop { animation: popIn 660ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -219,14 +220,13 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 /* ---------- 内容容器 & About 排版 ---------- */
 .container { max-width: 700px; margin: 0 auto; padding: 0 24px; }
 
+/* 角色图：导出图四周带透明边，已按不透明区裁掉，左边缘正好压在段首那条竖线上 */
+.about__avatar { display: block; width: 35.3px; height: 62px; margin-bottom: 16px; }
 .about__name { font-size: 21px; font-weight: 600; color: #32302e; }
 .about__role { margin-top: 8px; font-size: 14px; color: #32302e; opacity: 0.5; }
 .about__bio { position: relative; margin-top: 38px; }
 .about__bio p { font-size: 14px; line-height: 1.9; color: #32302e; margin-bottom: 20px; }
 .about__bio p:last-child { margin-bottom: 0; }
-
-/* 蓝色小方块：与自我介绍右边、底部对齐 */
-.about__square { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; background: #2084e9; }
 
 .about__block { margin-top: 84px; }
 .about__heading { font-size: 14px; font-weight: 400; color: #4b4b4b; margin-bottom: 18px; }
@@ -314,7 +314,9 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .card.no-anim { transition: none !important; }
 /* 入场：位移+缩放与淡入同步（不走常态那条延后的淡出曲线） */
 .card.is-entering { transition: transform 0.6s cubic-bezier(0.22, 0.85, 0.25, 1), opacity 0.38s ease; }
-/* 可见性闸门：未就绪或已离开时整个舞台不参与绘制，任何一帧都不可能露出卡片 */
+/* 可见性闸门：未就绪或已离开时整个舞台不参与绘制，任何一帧都不可能露出卡片。
+   闸门打开时走这条渐显，否则卡片的目标不透明度是提前写好的，会整叠一帧蹦出来 */
+.projects { transition: opacity 0.42s ease; }
 .projects.is-hidden { opacity: 0; visibility: hidden; }
 /* 退场：整叠卡片连同 icon 坞一起渐隐 */
 .projects.is-leaving { opacity: 0; transition: opacity 0.2s ease; }
@@ -407,8 +409,8 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   src: url("../assets/fonts/roboto-latin-400.woff2") format("woff2"); }
 @font-face { font-family: Roboto; font-style: normal; font-weight: 500; font-display: swap;
   src: url("../assets/fonts/roboto-latin-500.woff2") format("woff2"); }
-/* 内页只留正文：顶部导航直接不出现，角标小幽灵渐隐（别硬切） */
-body[class*="route-case-"] .nav { display: none; }
+/* 内页只留正文：顶部导航和角标小幽灵一起渐隐，两边用同一条时长，别一个硬切一个慢慢淡 */
+body[class*="route-case-"] .nav { opacity: 0; pointer-events: none; }
 body[class*="route-case-"] .corner-logo { opacity: 0; pointer-events: none; }
 body[class*="route-case-"] { background: #f7f7f7; }
 

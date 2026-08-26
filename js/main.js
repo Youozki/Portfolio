@@ -123,6 +123,7 @@
 
   let leavingProjects = false;
   let leavingCase = false;
+  let leavingOuter = false;
   function navigate(r) {
     if (!ROUTES.includes(r)) r = 'home';
     if (r === route || transitioning) return;
@@ -148,6 +149,16 @@
         projects.classList.add('is-hidden');     // 闸门关上：之后任何一帧都不会再露出卡片
         leavingProjects = false;
       }, 240);
+      return;
+    }
+    // about / contact 之间互切（以及去 Projects）：旧页面正文先渐隐，别硬切。
+    // 内页和 Projects 的离场各有自己的分支，这里必须让开：它们的 setTimeout 回调里
+    // 二次调用 navigate 时 route 还没变，若被这条接住就会两个分支交替接管、路由永远切不过去
+    if (canAnim && !leavingOuter && !leavingProjects && route.indexOf('case-') !== 0 &&
+        route !== 'home' && r !== 'home' && views[route]) {
+      leavingOuter = true;
+      views[route].style.opacity = '0';
+      setTimeout(() => { navigate(r); leavingOuter = false; }, 260);
       return;
     }
     setAwake(false);
@@ -254,7 +265,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
 
   /* ---------------- 正文逐行渐显 + 底部偏外文字淡化 ---------------- */
-  const REVEAL_SEL = '.view.is-active .about__name, .view.is-active .about__role, .view.is-active .about__bio > p, .view.is-active .about__heading, .view.is-active .row, .view.is-active .about__cta, .view.is-active .contact__note, .view.is-active .contact__item';
+  const REVEAL_SEL = '.view.is-active .about__avatar, .view.is-active .about__name, .view.is-active .about__role, .view.is-active .about__bio > p, .view.is-active .about__heading, .view.is-active .row, .view.is-active .about__cta, .view.is-active .contact__note, .view.is-active .contact__item';
   function revealEls() { return Array.prototype.slice.call(document.querySelectorAll(REVEAL_SEL)); }
   // 元素自身的基础透明度（"用户体验设计师"本就偏浅，与"体验设计实习生"一致）
   function baseOp(el) { return el.classList.contains('about__role') ? 0.5 : 1; }
@@ -794,7 +805,7 @@
     });
   }
   // 产出素材图墙：从右往左匀速滚动，整条内容复制过一份，位移到一半就归零，所以看不出接缝。
-  // hover 不是直接停，而是把播放速率分档降到 0（约 2.5s），移开再缓慢升回 1
+  // hover 不是直接停，而是把播放速率分档降到 0（约 0.6s），移开再升回 1
   function initMarquee(doc) {
     if (!canAnim) return;
     Array.prototype.forEach.call(doc.querySelectorAll('.marquee'), (box) => {
@@ -803,6 +814,7 @@
       const speed = Number(box.getAttribute('data-marquee-speed')) || 45;   // px/s
       let anim = null, ramp = null, rate = 1;
       function start() {
+        if (anim) return true;
         const half = track.scrollWidth / 2;
         if (!half) return false;
         anim = track.animate(
@@ -812,17 +824,26 @@
         anim.playbackRate = rate;
         return true;
       }
-      // 图是懒加载的，排版没落定时量不到宽度，等 load 再补一次
-      if (!start()) window.addEventListener('load', start, { once: true });
+      // 正文是在首页就预取的，那会儿内页还是 display:none，scrollWidth 量出来是 0，
+      // 启动不了。load 早就过去了、再挂 load 监听永远不会触发，所以靠 ResizeObserver
+      // 等它真正显示、尺寸出来那一刻再启动（图的宽高是内联写死的，不受懒加载影响）
+      if (!start()) {
+        if (window.ResizeObserver) {
+          const ro = new ResizeObserver(() => { if (start()) ro.disconnect(); });
+          ro.observe(track);
+        } else {
+          window.addEventListener('load', start, { once: true });
+        }
+      }
       function ease(to) {
         clearInterval(ramp);
         ramp = setInterval(() => {
-          rate = Math.max(0, Math.min(1, rate + (to > rate ? 0.032 : -0.032)));
+          rate = Math.max(0, Math.min(1, rate + (to > rate ? 0.07 : -0.07)));
           // 用 playbackRate 而不是 updatePlaybackRate：后者是「等动画 ready 再生效」，
           // 直接赋值会立刻生效且不改 currentTime，所以不会跳帧
           if (anim) anim.playbackRate = rate;
           if (rate === to) clearInterval(ramp);
-        }, 80);
+        }, 40);
       }
       box.addEventListener('pointerenter', () => ease(0));
       box.addEventListener('pointerleave', () => ease(1));
