@@ -447,6 +447,13 @@ body[class*="route-case-"] { background: #f7f7f7; }
 }
 .case-doc .hscroll__thumb.is-drag { cursor: grabbing; }
 
+/* 产出素材图墙：整条复制一份首尾相接，位移由 initMarquee() 驱动（hover 要缓慢减速，纯 CSS 动画做不到） */
+.case-doc .marquee { overflow: hidden; }
+.case-doc .marquee__track {
+  display: flex; align-items: center; width: max-content; height: 100%;
+  will-change: transform;
+}
+
 /* 左侧章节导航：固定在视口，与正文同一缩放系数 */
 .case-nav {
   position: fixed; top: 0; left: 0; z-index: 20;

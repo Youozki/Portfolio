@@ -17,8 +17,9 @@
     projects: document.getElementById('view-projects'),
     'case-companion': document.getElementById('view-case-companion'),
     'case-justpaper': document.getElementById('view-case-justpaper'),
+    'case-oreate': document.getElementById('view-case-oreate'),
   };
-  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion', 'case-justpaper'];
+  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion', 'case-justpaper', 'case-oreate'];
   let route = 'home';
   let transitioning = false;
   let scrolledExpand = false;
@@ -390,6 +391,7 @@
       dx: 42.74, dy: 331.37, dw: 438, dop: 0.75, dcolor: '#fff',
       desc: '原生笔记软件，结合双屏的产品特点为用户构建笔记使用新体验。' },
     { id: 'oreate', tpl: 'tpl-oreate', title: 'Oreate AI', bw: 946, bh: 395.68, bg: '#f9f9f9',
+      caseRoute: 'case-oreate',
       icon: { src: 'assets/projects/oreate/image_12.webp', x: 36.73, y: 288.16, w: 19.73, h: 20.05 },
       ds: 21.5,
       tx: 67, ty: 287.84, color: '#32302e',
@@ -695,7 +697,8 @@
   // 每个内页一份配置：正文脚本、挂载的全局变量、设计稿画布高度、底部“下个作品”指向的卡片
   const CASES = {
     'case-companion': { src: 'pages/case-companion.js', key: 'CASE_DOC_COMPANION', h: 8944, nextRoute: 'case-justpaper' },
-    'case-justpaper': { src: 'pages/case-justpaper.js', key: 'CASE_DOC_JUSTPAPER', h: 9952, nextId: 'oreate' },
+    'case-justpaper': { src: 'pages/case-justpaper.js', key: 'CASE_DOC_JUSTPAPER', h: 9952, nextRoute: 'case-oreate' },
+    'case-oreate': { src: 'pages/case-oreate.js', key: 'CASE_DOC_OREATE', h: 10795, nextId: 'terabox' },
   };
   const CASE_W = 1920;
   let caseScale = 1, caseScrolled = false;
@@ -739,6 +742,7 @@
             });
           }
           if (c.doc) initHScroll(c.doc);
+          if (c.doc) initMarquee(c.doc);
           resolve();
         };
         s.onerror = () => { c.loading = null; c.failed = true; resolve(); };
@@ -755,6 +759,8 @@
       if (!thumb) return;
       let thumbW = 0;
       function sync() {
+        // 内页 display:none 时量出来全是 0，比例算成 NaN 会把滑块宽度写坏，直接跳过等真正显示了再算
+        if (!view.clientWidth || !view.scrollWidth || !bar.clientWidth) return;
         const max = view.scrollWidth - view.clientWidth;
         thumbW = Math.max(bar.clientWidth * (view.clientWidth / view.scrollWidth), 12);
         thumb.style.width = thumbW.toFixed(2) + 'px';
@@ -763,6 +769,8 @@
       }
       view.addEventListener('scroll', sync);
       window.addEventListener('resize', sync);
+      // 预取时内页还是隐藏的，尺寸从 0 变成真实值时补算一次，用户不滚也能先看到滑块
+      if (window.ResizeObserver) new ResizeObserver(sync).observe(view);
       thumb.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         const x0 = e.clientX, from = view.scrollLeft;
@@ -783,6 +791,41 @@
         window.addEventListener('pointerup', up);
       });
       sync();
+    });
+  }
+  // 产出素材图墙：从右往左匀速滚动，整条内容复制过一份，位移到一半就归零，所以看不出接缝。
+  // hover 不是直接停，而是把播放速率分档降到 0（约 2.5s），移开再缓慢升回 1
+  function initMarquee(doc) {
+    if (!canAnim) return;
+    Array.prototype.forEach.call(doc.querySelectorAll('.marquee'), (box) => {
+      const track = box.querySelector('.marquee__track');
+      if (!track) return;
+      const speed = Number(box.getAttribute('data-marquee-speed')) || 45;   // px/s
+      let anim = null, ramp = null, rate = 1;
+      function start() {
+        const half = track.scrollWidth / 2;
+        if (!half) return false;
+        anim = track.animate(
+          [{ transform: 'translateX(0)' }, { transform: 'translateX(' + -half + 'px)' }],
+          { duration: (half / speed) * 1000, iterations: Infinity, easing: 'linear' }
+        );
+        anim.playbackRate = rate;
+        return true;
+      }
+      // 图是懒加载的，排版没落定时量不到宽度，等 load 再补一次
+      if (!start()) window.addEventListener('load', start, { once: true });
+      function ease(to) {
+        clearInterval(ramp);
+        ramp = setInterval(() => {
+          rate = Math.max(0, Math.min(1, rate + (to > rate ? 0.032 : -0.032)));
+          // 用 playbackRate 而不是 updatePlaybackRate：后者是「等动画 ready 再生效」，
+          // 直接赋值会立刻生效且不改 currentTime，所以不会跳帧
+          if (anim) anim.playbackRate = rate;
+          if (rate === to) clearInterval(ramp);
+        }, 80);
+      }
+      box.addEventListener('pointerenter', () => ease(0));
+      box.addEventListener('pointerleave', () => ease(1));
     });
   }
   // 到 Projects 页时顺手预取，点卡片进内页就不用等
