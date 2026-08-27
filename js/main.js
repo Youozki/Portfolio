@@ -25,7 +25,9 @@
   let scrolledExpand = false;
 
   const WAKE_RADIUS = 300;
-  const MAX_EYE = 7;
+  const MAX_EYE = 8;
+  const MAX_EYE_UP = 11;      // 往上、往右两边看着更空，视线多探出去一点才平衡
+  const MAX_EYE_RIGHT = 11;
   const MAX_BODY = 4;
   let sleepTimer = null;
 
@@ -33,10 +35,8 @@
   function setAwake(on) {
     ghost.classList.toggle('is-awake', on);
     if (!on) {
-      eyes.forEach((eye) => {
-        eye.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        eye.style.transform = 'translate(0, 0)';
-      });
+      // 只写 transform，眨眼那条 scale 过渡留给 CSS（写内联 transition 会把它整条顶掉）
+      eyes.forEach((eye) => { eye.style.transform = 'translate(0, 0)'; });
       inner.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)';
       inner.style.transform = 'translate(0, 0)';
     }
@@ -58,12 +58,11 @@
     if (dist < WAKE_RADIUS) wake();
     const angle = Math.atan2(dy, dx);
     const t = Math.min(dist / 70, 1);
-    const ex = Math.cos(angle) * t * MAX_EYE;
-    const ey = Math.sin(angle) * t * MAX_EYE;
+    const ex = Math.cos(angle) * t * (Math.cos(angle) > 0 ? MAX_EYE_RIGHT : MAX_EYE);
+    const ey = Math.sin(angle) * t * (Math.sin(angle) < 0 ? MAX_EYE_UP : MAX_EYE);
     const bx = Math.cos(angle) * t * MAX_BODY;
     const by = Math.sin(angle) * t * MAX_BODY;
     eyes.forEach((eye) => {
-      eye.style.transition = 'transform 0.16s ease-out';
       eye.style.transform = `translate(${ex}px, ${ey}px)`;
     });
     inner.style.transition = 'transform 0.16s ease-out';
@@ -91,6 +90,7 @@
     // 离开首页时清空残留粒子，避免切回首页时堆积
     if (r !== 'home' && floaters) floaters.replaceChildren();
     if (r === 'about' || r === 'contact') requestAnimationFrame(enterReveal);
+    if (r === 'contact') writeMarks();
     if (r.indexOf('case-') === 0) {
       fitCase(r);
       resetCaseNav(r);
@@ -297,8 +297,18 @@
       scrollReveal();
     }, els.length * 30 + 460);
   }
-  let revealTick = false;
-  window.addEventListener('scroll', () => {
+  // 进入 Contact：两个小感叹号像手写那样画出来，跑完就把 class 摘掉，下次进页面再跑一次
+  let writeTimer = null;
+  function writeMarks() {
+    const v = views['contact'];
+    if (!v || !canAnim) return;
+    v.classList.remove('is-writing');
+    void v.offsetWidth;            // 强制回流，重进页面时动画才会重头再来
+    v.classList.add('is-writing');
+    clearTimeout(writeTimer);
+    writeTimer = setTimeout(() => v.classList.remove('is-writing'), 900);
+  }
+  let revealTick = false;  window.addEventListener('scroll', () => {
     if (revealTick) return;
     revealTick = true;
     requestAnimationFrame(() => { scrollReveal(); revealTick = false; });
@@ -347,13 +357,14 @@
 
   /* ---------------- 漂浮粒子（仅首页） ---------------- */
   if (floaters && canAnim) {
+    /* Zzz 和泡泡的尺寸跟着幽灵一起按 0.9 收小 */
     const Z = [
-      { src: 'assets/image_2.png', w: 58 },
-      { src: 'assets/image_4.png', w: 52 },
-      { src: 'assets/image_3.png', w: 34 },
+      { src: 'assets/image_2.png', w: 52 },
+      { src: 'assets/image_4.png', w: 47 },
+      { src: 'assets/image_3.png', w: 31 },
     ];
     const BUB = [
-      { d: 16, c: '#1a7af0' }, { d: 40, c: '#6aa8f5' }, { d: 24, c: '#1a7af0' },
+      { d: 14, c: '#1a7af0' }, { d: 36, c: '#6aa8f5' }, { d: 22, c: '#1a7af0' },
     ];
     let i = 0;
     function spawn() {
@@ -849,6 +860,86 @@
       box.addEventListener('pointerleave', () => ease(1));
     });
   }
+  /* ---------------- Projects：跟随光标的小提示 ---------------- */
+  (function cursorTip() {
+    const tip = document.getElementById('cursorTip');
+    if (!tip) return;
+    const roll = tip.querySelector('.cursor-tip__roll');
+    const lines = Array.prototype.slice.call(tip.querySelectorAll('.cursor-tip__line'));
+    const PAD = 36;          // 左右留白合计，收紧后文字在框里占 2/3（108x34）
+    const TOP_ZONE = 140;    // 顶部导航与角标那一带不打扰
+    const IDLE = 1100;       // 光标静止这么久就收起
+    const BAR = 7;           // 收成细条后的宽度
+    let idle = 0, fade = 0, text = '', shown = false, slot = 0;
+
+    // 收起：只收 width，height 和 border-radius 不动，浏览器会按宽度等比收窄圆角，
+    // 所以是收成一根细条再消失，而不是先变成圆形
+    function collapse() {
+      clearTimeout(idle);
+      if (!shown) return;
+      shown = false;
+      text = '';
+      tip.classList.add('is-collapsing');
+      tip.style.width = BAR + 'px';
+      fade = setTimeout(() => tip.classList.remove('is-on'), canAnim ? 250 : 0);
+    }
+    // 换文案时像滚轮一样接力：旧的一片往上滚出，新的一片从下面顶上来，都被 roll 裁在框内
+    function rollTo(next, animate) {
+      const cur = lines[slot], inc = lines[1 - slot];
+      inc.textContent = next;
+      const w = inc.offsetWidth;
+      if (animate) {
+        inc.classList.add('no-anim');
+        inc.style.transform = 'translateY(100%)';
+        void inc.offsetWidth;
+        inc.classList.remove('no-anim');
+      }
+      cur.style.transform = 'translateY(-100%)';
+      inc.style.transform = 'translateY(0)';
+      slot = 1 - slot;
+      return w;
+    }
+    function show(next) {
+      clearTimeout(idle);
+      idle = setTimeout(collapse, IDLE);
+      if (next === text) return;
+      clearTimeout(fade);
+      tip.classList.remove('is-collapsing');
+      const fresh = !shown;
+      if (fresh) tip.classList.add('no-anim');   // 重新出现时直接就位，别从细条抖开
+      const w = rollTo(next, !fresh);
+      text = next;
+      roll.style.width = w + 'px';
+      tip.style.width = (w + PAD) + 'px';
+      if (fresh) {
+        void tip.offsetWidth;
+        tip.classList.remove('no-anim');
+        shown = true;
+      }
+      tip.classList.add('is-on');
+    }
+    // 贴着右/下边缘时翻到光标另一侧，别被视口裁掉
+    function place(x, y) {
+      const w = tip.offsetWidth;
+      const left = x + 24 + w > window.innerWidth - 8 ? x - 24 - w : x + 24;
+      const top = Math.min(y + 8, window.innerHeight - tip.offsetHeight - 8);
+      tip.style.transform = 'translate3d(' + left + 'px,' + top + 'px,0)';
+    }
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      if (route !== 'projects') { collapse(); return; }
+      if (e.clientY < TOP_ZONE) {
+        collapse();
+      } else {
+        const onCard = e.target instanceof Element && e.target.closest('.card');
+        show(onCard ? '点击查看项目' : '滚动翻看项目');
+      }
+      place(e.clientX, e.clientY);       // 摆位放在最后，宽度已经定下来才好判断边缘
+    }, { passive: true });
+    document.addEventListener('mouseleave', collapse);
+    window.addEventListener('blur', collapse);
+  })();
+
   // 到 Projects 页时顺手预取，点卡片进内页就不用等
   window.addEventListener('load', () => {
     setTimeout(() => { Object.keys(CASES).forEach(loadCase); }, 1200);

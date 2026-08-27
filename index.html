@@ -28,8 +28,8 @@
           <img class="eyes-closed-img" src="assets/eyes_closed.png" alt="" />
         </span>
         <span class="eyes eyes--open">
-          <img class="eye eye--left" src="assets/image_9.png" alt="" />
-          <img class="eye eye--right" src="assets/image_8.png" alt="" />
+          <img class="eye eye--left" src="assets/eye.png" alt="" />
+          <img class="eye eye--right" src="assets/eye.png" alt="" />
         </span>
       </div>
     </div>
@@ -118,16 +118,22 @@
           <li class="contact__item">Tel：18817076170</li>
           <li class="contact__item has-hint">
             Wechat：IfiGottA
-            <span class="contact__hint contact__hint--wechat">
-              <img class="contact__arrow" src="assets/contact/image_1.png" alt="" />
-              <span class="contact__hintText">手机号也行</span>
+            <span class="contact__mark" aria-hidden="true">
+              <img class="contact__markStroke" src="assets/contact/mark_stroke.png" alt="" />
+              <img class="contact__markDot" src="assets/contact/mark_dot.png" alt="" />
+            </span>
+            <span class="contact__hint">
+              <img class="contact__qr" src="assets/contact/qr_wechat.png" alt="微信二维码" />
             </span>
           </li>
           <li class="contact__item">Email：670156618@qq.com</li>
           <li class="contact__item has-hint">
             小红书：Youozki
-            <span class="contact__hint contact__hint--xhs">
-              <img class="contact__arrow" src="assets/contact/image_1.png" alt="" />
+            <span class="contact__mark" aria-hidden="true">
+              <img class="contact__markStroke" src="assets/contact/mark_stroke.png" alt="" />
+              <img class="contact__markDot" src="assets/contact/mark_dot.png" alt="" />
+            </span>
+            <span class="contact__hint">
               <span class="contact__hintText">有时会更新动画作品</span>
             </span>
           </li>
@@ -143,6 +149,9 @@
           <nav class="dock" id="dock" aria-label="项目切换"></nav>
         </div>
       </div>
+
+      <!-- 跟随光标的小提示：放在 .projects 之外，免得被牌堆的渐隐/闸门带着一起淡掉 -->
+      <div class="cursor-tip" id="cursorTip" aria-hidden="true"><span class="cursor-tip__roll"><span class="cursor-tip__line"></span><span class="cursor-tip__line"></span></span></div>
 
       <!-- 以下模板为各卡片的画面层，坐标/尺寸直接沿用设计稿像素值 -->
       <template id="tpl-terabox">

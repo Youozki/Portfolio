@@ -1,7 +1,7 @@
 :root {
   --ink: #3a3a3a;
   --muted: rgba(128, 127, 127, 1);
-  --ghost-w: clamp(140px, 13vw, 178.58px);
+  --ghost-w: clamp(126px, 11.7vw, 160.7px);   /* 设计稿 178.58 的 0.9，整体收小一点 */
   --ghost-ratio: 1.00487; /* 179.45 / 178.58，首页幽灵原造型 */
 }
 
@@ -127,11 +127,13 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .ghost__halo { z-index: 0; transform: scale(1.09); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.22)) drop-shadow(0 10px 9px rgba(0, 0, 0, 0.14)); }
 .ghost__body { z-index: 1; }
 
-/* 眼睛图层：闭眼 / 睁眼 交叉淡入淡出，身体保持不变 */
-.eyes { position: absolute; inset: 0; z-index: 3; transition: opacity 0.4s ease; }
-.eyes--open { opacity: 0; }
-.ghost.is-awake .eyes--closed { opacity: 0; }
-.ghost.is-awake .eyes--open   { opacity: 1; }
+/* 眼睛图层：闭眼 / 睁眼 两层叠着，靠下面的眨眼动作衔接，身体保持不变 */
+.eyes { position: absolute; inset: 0; z-index: 3; }
+/* 闭眼：瞳孔收拢到只剩一条线时再接上短横，所以淡入压在收拢的尾巴上 */
+.eyes--closed { opacity: 1; transition: opacity 90ms linear 110ms; }
+.eyes--open   { opacity: 0; transition: opacity 80ms linear 130ms; }
+.ghost.is-awake .eyes--closed { opacity: 0; transition: opacity 80ms linear; }
+.ghost.is-awake .eyes--open   { opacity: 1; transition: opacity 60ms linear; }
 
 /* 闭眼短横：设计稿原样 */
 .eyes-closed-img {
@@ -142,14 +144,34 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   height: auto;
 }
 
-/* 睁眼眼珠，跟随由 JS 控制 transform */
+/* 睁眼瞳孔（设计稿 Group 2147238871 的圆头竖条），跟随由 JS 写 transform。
+   眨眼用独立的 scale 属性把瞳孔纵向收拢成一条细线，跟 transform 各走各的，
+   不会互相覆盖；圆头随之等比压扁，收到底正好是闭眼那两道短横的位置和粗细 */
 .eye {
   position: absolute;
-  will-change: transform;
-  transition: transform 0.14s ease-out;
+  will-change: transform, scale, translate;
+  transform-origin: center center;
+  /* 合上：纵向压扁、横向略摊开，正好是闭眼短横的粗细和长度 */
+  scale: 1.5 0.16;
+  /* 压扁的同时挪到设计稿闭眼短横的位置上，淡入淡出才不会看出错位；
+     用百分比（相对瞳孔自身尺寸）好跟着 --ghost-w 一起缩 */
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+              scale 140ms cubic-bezier(0.4, 0, 1, 1),
+              translate 140ms cubic-bezier(0.4, 0, 1, 1);
 }
-.eyes--open .eye--left  { left: 26.0%; top: 42.0%; width: 14.8%; height: auto; }
-.eyes--open .eye--right { left: 49.0%; top: 45.7%; width: 15.3%; height: auto; }
+.eye--left  { translate: -7% -14%; }
+.eye--right { translate: 37% -7%; }
+.ghost.is-awake .eye {
+  scale: 1 1;
+  translate: 0 0;
+  /* 醒着时：跟随要跟手，睁眼带一点回弹 */
+  transition: transform 0.16s ease-out,
+              scale 260ms cubic-bezier(0.34, 1.56, 0.64, 1) 40ms,
+              translate 220ms cubic-bezier(0.34, 1.56, 0.64, 1) 40ms;
+}
+/* 眼身比例照设计稿：瞳孔高 28.8 / 身高 179.45 ≈ 16%，宽高比 62:120 由 height:auto 保证 */
+.eyes--open .eye--left  { left: 28.03%; top: 45.19%; width: 8.33%; height: auto; }
+.eyes--open .eye--right { left: 51.55%; top: 49.09%; width: 8.33%; height: auto; }
 
 /* ---------- 漂浮物：Zzz / 气泡（JS 逐个发射） ---------- */
 .floaters {
@@ -214,6 +236,8 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 
 @media (prefers-reduced-motion: reduce) {
   .ghost, .ghost__inner { animation: none !important; }
+  .contact__mark { animation: none !important; }
+  .eyes, .eye { transition-duration: 1ms !important; }
   .p { animation-duration: 1ms; }
 }
 
@@ -275,19 +299,60 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   white-space: nowrap;
 }
 .has-hint { cursor: default; }
-/* hover 才出现的箭头 + 说明文字 */
-.contact__hint {
-  position: absolute; top: 130%;
-  display: flex; align-items: center; gap: 6px;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  transform: translateY(4px);
+/* 设计稿那个手写小感叹号：一笔竖撇 + 下面的点，两张原图直接用，尺寸按设计稿
+   （笔画实测 10.26x14.55、点 4.15x4.25、间距 1.91，整页缩放 15/17.89≈0.839）。
+   点在设计稿里是贴着笔画左边缘的（ml 0.58），不是居中——居中会把点推到笔尖右边，
+   那一笔的斜势就断了，看着像歪的，所以这里必须 flex-start */
+.contact__mark {
+  position: absolute; left: 50%; top: 100%;
+  transform: translateX(-50%);
+  margin-top: 6px; padding: 4px 8px;   /* 图太小，撑一点点热区才好 hover */
+  display: flex; flex-direction: column; align-items: flex-start;
 }
-.contact__hint--wechat { left: -66px; }
-.contact__hint--xhs { left: 96px; }
-.contact__arrow { width: 38px; height: auto; display: block; }
+.contact__markStroke { display: block; width: 8.6px; height: 12.2px; }
+.contact__markDot { display: block; width: 3.5px; height: 3.6px; margin: 1.6px 0 0 0.49px; }
+/* 写完之后极轻微地上下漂，hover 就地停住，移开继续飘 */
+@keyframes markBob {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -2px; }
+}
+.view-contact:not(.is-writing) .contact__mark {
+  animation: markBob 2800ms ease-in-out infinite;
+}
+.contact__mark:hover { animation-play-state: paused; }
+/* hover 小感叹号才出现：二维码 / 那句话，轻微地从上往下渐显 */
+.contact__hint {
+  position: absolute; left: 50%; top: 100%;
+  margin-top: 41px;
+  transform: translateX(-50%) translateY(-6px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+.contact__qr { display: block; width: 61px; height: 61px; }
 .contact__hintText { font-size: 11px; color: #32302e; white-space: nowrap; }
-.has-hint:hover .contact__hint { opacity: 1; transform: translateY(0); }
+.contact__mark:hover ~ .contact__hint {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+
+/* 进入 Contact 时小感叹号像手写那样从上往下画出来（裁的是设计稿原图，不是我描的路径），
+   笔画走完点再落下；动画只在进页面时跑一次，class 由 JS 用完就摘 */
+@keyframes markWrite {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+@keyframes markDotIn {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.view-contact.is-writing .contact__markStroke {
+  animation: markWrite 460ms cubic-bezier(0.5, 0.05, 0.5, 1) both;
+}
+.view-contact.is-writing .contact__markDot {
+  animation: markDotIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 430ms both;
+}
+/* 两个感叹号错开一点，像依次写下去 */
+.view-contact.is-writing .contact__item:nth-of-type(4) .contact__markStroke { animation-delay: 150ms; }
+.view-contact.is-writing .contact__item:nth-of-type(4) .contact__markDot { animation-delay: 580ms; }
 
 /* ---------- Projects：翻页式卡片牌堆（尺寸/坐标全部沿用设计稿像素） ---------- */
 .projects { --s: 1; display: flex; justify-content: center; height: calc(567px * var(--s)); }
@@ -320,6 +385,36 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .projects.is-hidden { opacity: 0; visibility: hidden; }
 /* 退场：整叠卡片连同 icon 坞一起渐隐 */
 .projects.is-leaving { opacity: 0; transition: opacity 0.2s ease; }
+
+/* 跟随光标的小提示：形状取自设计稿 150x49 / radius 20，按 0.7 缩小并收紧左右留白，
+   让文字在框里占得更满（108x34 / radius 14，12px 六个字 72 + 左右留白 36 = 108）。
+   留白靠 JS 算进 width、不用 padding：border-box 下 width 收不到 padding 之和以内，
+   收起时会卡住变成一个圆块，收不成细条。收起只动 width，height 与 radius 不变，
+   浏览器按宽度等比收窄圆角，最后是一根细条 */
+.cursor-tip {
+  position: fixed; top: 0; left: 0; z-index: 60;
+  height: 34px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; background: #2084e9;
+  color: #fff; font-size: 12px; line-height: 1; white-space: nowrap;
+  overflow: hidden; pointer-events: none;
+  opacity: 0; visibility: hidden;
+  transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.16s ease;
+}
+.cursor-tip.is-on { opacity: 1; visibility: visible; }
+/* 文字滚轮：两片文字上下接力，超出的部分被这层裁掉，所以看着一直在框里 */
+.cursor-tip__roll {
+  position: relative; display: block; flex: none; height: 16px; overflow: hidden;
+  transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cursor-tip__line {
+  position: absolute; left: 0; top: 0; width: max-content; height: 16px;
+  display: flex; align-items: center;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.11s ease;
+}
+.cursor-tip.is-collapsing .cursor-tip__line { opacity: 0; }
+.cursor-tip.no-anim, .cursor-tip.no-anim .cursor-tip__roll,
+.cursor-tip.no-anim .cursor-tip__line, .cursor-tip__line.no-anim { transition: none; }
 /* 翻走的那张：向左上被拖离牌堆并淡出（transform 由 JS 写内联值） */
 
 /* 画面层容器：内部按设计稿原始尺寸摆放，再整体缩放到卡片尺寸 */
@@ -391,7 +486,7 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .dock__icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
 
 @media (prefers-reduced-motion: reduce) {
-  .card, .dock__item, .dock__icon, .dock__pill { transition-duration: 1ms !important; }
+  .card, .dock__item, .dock__icon, .dock__pill, .cursor-tip { transition-duration: 1ms !important; }
 }
 
 /* ---------------- 作品内页 ---------------- */
