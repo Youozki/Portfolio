@@ -73,6 +73,10 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .view-about.is-active { min-height: 100vh; padding: 150px 0 120px; }
 .view-contact.is-active {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  /* 感叹号和 hover 出来的二维码是绝对定位、不占高度，居中时这些视觉重量全压在下半边，
+     所以垫一段下边距把整块往上提约 40px；左边再垫 16px 把正文右移 8px，
+     对齐顶部导航含胶囊的视觉中心（胶囊比链接组右边缘多探出 16px） */
+  padding: 0 0 80px 16px;
 }
 .view-projects.is-active {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -124,7 +128,7 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   will-change: transform, translate;
 }
 .ghost__halo, .ghost__body { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
-.ghost__halo { z-index: 0; transform: scale(1.09); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.22)) drop-shadow(0 10px 9px rgba(0, 0, 0, 0.14)); }
+.ghost__halo { z-index: 0; transform: scale(1.09); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.13)) drop-shadow(0 10px 9px rgba(0, 0, 0, 0.08)); }
 .ghost__body { z-index: 1; }
 
 /* 眼睛图层：闭眼 / 睁眼 两层叠着，靠下面的眨眼动作衔接，身体保持不变 */
