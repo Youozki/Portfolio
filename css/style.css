@@ -585,11 +585,87 @@ body[class*="route-case-"] { background: #f7f7f7; }
 .case-nav__item:nth-of-type(6) { top: 394.09px; }
 .case-nav__back { top: 0; left: 46.85px; width: 81.3px; }
 .case-nav__icon {
-  position: absolute; left: -38.29px; top: 5.72px;
+  position: absolute; left: -38.29px; top: 4.72px;
   width: 16.59px; height: 15.29px; display: block;
 }
 
+/* Practices：作品墙的小卡片。整卡一张图，hover 时图微微放大、左上角标签渐显 */
+.case-doc .pcard { position: absolute; border-radius: 20px; overflow: hidden; cursor: pointer; }
+.case-doc .pcard__art {
+  position: absolute; left: 0; top: 0; display: block;
+  transform: scale(1); transform-origin: 50% 50%;
+  transition: transform 0.55s cubic-bezier(0.22, 0.85, 0.25, 1);
+}
+.case-doc .pcard:hover .pcard__art { transform: scale(1.045); }
+/* 白卡的描边烘在图里，图一放大就被裁掉，这层同色描边负责在两个状态下都把边留住 */
+.case-doc .pcard__edge {
+  position: absolute; inset: 0; border-radius: 20px;
+  border: 1px solid #c5c5c5; pointer-events: none;
+}
+.case-doc .ptag {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  font-family: "PingFang HK", "PingFang SC", sans-serif; line-height: 170%;
+  white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.32s ease;
+  /* 统一磨砂：不透明度压得比较高，底图从纯白到近黑，胶囊色只在 ~200–240 之间浮动，
+     十五张卡看过去几乎同一个色，深字也一直有对比 */
+  color: #32302e;
+  background-color: rgba(238, 238, 238, 0.82);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05); backdrop-filter: blur(14px) saturate(1.05);
+}
+.case-doc .pcard:hover .ptag { opacity: 1; }
+/* 底部一行：文字 + 小红书箭头整组居中 */
+.case-doc .pfoot {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  font-family: "PingFang HK", "PingFang SC", sans-serif; line-height: 170%; color: #32302e;
+}
+/* 这页侧栏只有 Back，不用等滚动：进场就跟着正文一起做同一套渐入动画 */
+#view-case-practices .case-nav { pointer-events: auto; }
+
+/* 单张作品详情弹层：卡片尺寸与正文同一缩放系数，从下往上渐入、原路渐出 */
+.pmodal {
+  position: fixed; inset: 0; z-index: 60; visibility: hidden;
+  transition: visibility 0s linear 0.52s;    /* 关闭时等渐出走完再真正藏起来 */
+}
+.pmodal.is-open { visibility: visible; transition-delay: 0s; }
+.pmodal__mask {
+  position: absolute; inset: 0; opacity: 0;
+  background: rgba(72, 72, 72, 0.55);
+  -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+  transition: opacity 0.44s ease;
+}
+.pmodal.is-open .pmodal__mask { opacity: 1; }
+.pmodal__card {
+  position: absolute; left: 50%; top: 50%;
+  width: 875px; height: 738.02px;
+  border-radius: 15.39px; background: #fff; overflow: hidden;
+  box-shadow: 0 0 23.09px rgba(0, 0, 0, 0.25);
+  transform: translate(-50%, -50%) scale(var(--cs, 1)) translateY(48px);
+  opacity: 0;
+  transition: transform 0.52s cubic-bezier(0.22, 0.85, 0.25, 1), opacity 0.44s ease;
+  font-family: "PingFang HK", "PingFang SC", sans-serif;
+  color: #32302e;
+}
+.pmodal.is-open .pmodal__card {
+  transform: translate(-50%, -50%) scale(var(--cs, 1)) translateY(0);
+  opacity: 1;
+}
+.pmodal__shot {
+  position: absolute; left: 0; top: 0; width: 875px; height: 738.02px; display: block;
+}
+.pmodal__close {
+  position: absolute; left: 817.28px; top: 14.62px; width: 41.10px; height: 41.10px;
+  padding: 0; border: none; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(28, 28, 28, 0.45);
+  -webkit-backdrop-filter: blur(9px) saturate(1.4); backdrop-filter: blur(9px) saturate(1.4);
+  transition: background 0.25s ease;
+}
+.pmodal__close:hover { background: rgba(28, 28, 28, 0.6); }
+.pmodal__close img { width: 11.11px; height: 11.11px; display: block; }
+
 @media (prefers-reduced-motion: reduce) {
-  .case-nav__item, .view-case, .case-doc .case-next { transition-duration: 1ms !important; }
+  .case-nav__item, .view-case, .case-doc .case-next,
+  .case-doc .pcard__art, .case-doc .ptag, .pmodal__mask, .pmodal__card { transition-duration: 1ms !important; }
 }
 

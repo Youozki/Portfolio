@@ -45,7 +45,7 @@
   <main>
     <!-- 首页 -->
     <section class="view view-home is-active" id="view-home">
-      <p class="greeting">Halo!&nbsp;&nbsp;I&apos;m ZhuChenYu</p>
+      <p class="greeting">Hola!&nbsp;&nbsp;I&apos;m ZhuChenYu</p>
     </section>
 
     <!-- About Me -->
@@ -53,7 +53,7 @@
       <div class="container about">
         <header class="about__intro">
           <img class="about__avatar" src="assets/about/avatar.png" alt="" />
-          <h1 class="about__name">Halo,我是朱晨宇</h1>
+          <h1 class="about__name">Hola,我是朱晨宇</h1>
           <p class="about__role">用户体验设计师</p>
         </header>
 
@@ -300,7 +300,44 @@
       </aside>
       <div class="case-doc"></div>
     </section>
+
+    <!-- 作品内页：Terabox -->
+    <section class="view view-case" id="view-case-terabox" aria-hidden="true">
+      <aside class="case-nav" aria-label="章节导航">
+        <button class="case-nav__item case-nav__back" type="button" data-back>
+          <img class="case-nav__icon" src="assets/cases/terabox/image_1.webp" alt="" />
+          <span>Back</span>
+        </button>
+        <button class="case-nav__item" type="button" data-sec="309">Intro</button>
+        <button class="case-nav__item" type="button" data-sec="1171">Problem</button>
+        <button class="case-nav__item" type="button" data-sec="1627">Solution</button>
+        <button class="case-nav__item" type="button" data-sec="5976">Outcome</button>
+      </aside>
+      <div class="case-doc"></div>
+    </section>
+
+    <!-- 作品内页：Practices（练习作品墙，正文由 js/main.js 按设计稿坐标装配） -->
+    <section class="view view-case" id="view-case-practices" aria-hidden="true">
+      <aside class="case-nav" aria-label="章节导航">
+        <button class="case-nav__item case-nav__back" type="button" data-back>
+          <img class="case-nav__icon" src="assets/cases/practices/back.webp" alt="" />
+          <span>Back</span>
+        </button>
+      </aside>
+      <div class="case-doc"></div>
+    </section>
   </main>
+
+  <!-- Practices 单张作品的详情弹层：磨砂蒙层 + 从下往上渐入的卡片 -->
+  <div class="pmodal" id="pmodal" aria-hidden="true">
+    <div class="pmodal__mask" data-close></div>
+    <div class="pmodal__card" role="dialog" aria-modal="true" aria-label="作品详情">
+      <img class="pmodal__shot" alt="" />
+      <button class="pmodal__close" type="button" aria-label="关闭" data-close>
+        <img src="assets/cases/practices/close_x.webp" alt="" />
+      </button>
+    </div>
+  </div>
 
   <script src="js/main.js"></script>
 </body>

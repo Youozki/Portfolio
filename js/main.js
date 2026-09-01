@@ -18,8 +18,10 @@
     'case-companion': document.getElementById('view-case-companion'),
     'case-justpaper': document.getElementById('view-case-justpaper'),
     'case-oreate': document.getElementById('view-case-oreate'),
+    'case-terabox': document.getElementById('view-case-terabox'),
+    'case-practices': document.getElementById('view-case-practices'),
   };
-  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion', 'case-justpaper', 'case-oreate'];
+  const ROUTES = ['home', 'about', 'contact', 'projects', 'case-companion', 'case-justpaper', 'case-oreate', 'case-terabox', 'case-practices'];
   let route = 'home';
   let transitioning = false;
   let scrolledExpand = false;
@@ -77,6 +79,7 @@
   function applyRoute(r) {
     route = r;
     body.className = 'route-' + r;
+    closePModal();
     Object.keys(views).forEach((k) => {
       const on = k === r;
       if (!views[k]) return;
@@ -420,12 +423,14 @@
       dx: 40, dy: 337.84, dw: 566, dop: 0.75,
       desc: 'AI全模态内容，快速生成AI图像、视频等多元需求，支持PPT、助力深度研究与写作。' },
     { id: 'terabox', tpl: 'tpl-terabox', title: 'Terabox', bw: 955.10, bh: 404.78, bg: '#f9f9f9',
+      caseRoute: 'case-terabox',
       icon: { src: 'assets/projects/terabox/image_13.webp', x: 40, y: 289.56, w: 22.33, h: 20.32 },
       ds: 22.0,
       tx: 71.73, ty: 286.90, color: '#32302e',
       dx: 40, dy: 338.37, dw: 461, dop: 1,
       desc: '百度网盘海外版本，主打内容+AI，海外方向强化多模态与AI能力。' },
     { id: 'practices', tpl: 'tpl-practices', title: 'Practices', bw: 946, bh: 400, bg: '#fff',
+      caseRoute: 'case-practices',
       icon: { src: 'assets/projects/practices/image_3.webp', x: 40, y: 294.36, w: 25.51, h: 24.27 },
       ds: 21.5,
       tx: 61, ty: 295, tw: 78.83, color: '#32302e', tls: '-2%',
@@ -716,11 +721,122 @@
   }
 
   /* ---------------- 作品内页 ---------------- */
+  /* Practices 作品墙：3 列 5 行。卡片尺寸比设计稿收了一档、图片间距仍是设计稿的 30，
+     卡内所有细节（标签、字号）跟着 k 一起缩，改 P_CARD 就能整体再调一次。
+     每张卡都是一张整图（圆角与白卡描边都烘在图里），标签只在 hover 时渐显；
+     点开后的详情卡同样是整图，title 只用于 alt / aria。 */
+  const P_DIR = 'assets/cases/practices/';
+  const P_CARD = 420;                 // 设计稿是 465
+  const P_GAP = 30;                   // 图片间距保持设计稿原值
+  const P_K = P_CARD / 465;           // 卡内细节的缩放系数
+  const P_TOP = 201;                  // 首行上边距沿用设计稿
+  const P_LEFT = 982.5 - (P_CARD * 3 + P_GAP * 2) / 2;   // 与设计稿同一视觉中心
+  const P_PITCH = P_CARD + P_GAP;
+  const P_ROWS = 5;
+  const P_FOOT_TOP = P_TOP + P_ROWS * P_PITCH - P_GAP + 167 * P_K;   // 末行底 + 设计稿留白
+  const P_DOC_H = Math.round(P_FOOT_TOP + 339 * P_K);
+  const PRACTICE_CARDS = [
+    { art: 'card_01.webp', frame: true, tag: 'UI',
+      detail: { shot: 'detail_01.webp', title: '百度AI学UI稿' } },
+    { art: 'card_02.webp', tag: '建模',
+      detail: { shot: 'detail_02.webp', title: 'Stone' } },
+    { art: 'card_03.webp', frame: true, tag: '动画',
+      detail: { shot: 'detail_03.webp', title: 'Keyboard Animation' } },
+    { art: 'card_04.webp', tag: '动画',
+      detail: { shot: 'detail_04.webp', title: 'Page Animation' } },
+    { art: 'card_05.webp', frame: true, tag: '动画',
+      detail: { shot: 'detail_05.webp', title: 'Spark' } },
+    { art: 'card_06.webp', tag: '动画',
+      detail: { shot: 'detail_06.webp', title: 'Boom' } },
+    { art: 'card_07.webp', tag: '动画',
+      detail: { shot: 'detail_07.webp', title: 'Information Visualization' } },
+    { art: 'card_08.webp', frame: true, tag: 'UI',
+      detail: { shot: 'detail_08.webp', title: 'APP UI' } },
+    { art: 'card_09.webp', frame: true, tag: '动画',
+      detail: { shot: 'detail_09.webp', title: 'Character Animation' } },
+    { art: 'card_10.webp', tag: '动画',
+      detail: { shot: 'detail_10.webp', title: 'Interstellar teleportation portal' } },
+    { art: 'card_11.webp', tag: '手绘',
+      detail: { shot: 'detail_11.webp', title: '原神同人手绘图' } },
+    { art: 'card_12.webp', tag: '动画',
+      detail: { shot: 'detail_12.webp', title: 'Car Animation' } },
+    { art: 'card_13.webp', tag: '建模',
+      detail: { shot: 'detail_13.webp', title: 'Astronaut' } },
+    { art: 'card_14.webp', tag: '建模',
+      detail: { shot: 'detail_14.webp', title: 'Character Animation' } },
+    { art: 'card_15.webp', tag: '动画',
+      detail: { shot: 'detail_15.webp', title: 'IBM–BUCK' } },
+  ];
+
+  function buildPracticesDoc() {
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const cards = PRACTICE_CARDS.map((c, i) => {
+      const x = r2(P_LEFT + (i % 3) * P_PITCH);
+      const y = r2(P_TOP + Math.floor(i / 3) * P_PITCH);
+      const art = `<img class="pcard__art" src="${P_DIR}${c.art}" alt="" decoding="async" loading="lazy"
+        style="width:${P_CARD}px;height:${P_CARD}px" />`;
+      // 标签统一用实时磨砂，浓度调到底图深浅几乎不影响它的色调（见 .ptag）
+      const tag = c.tag ? `<span class="ptag"
+        style="left:${r2(16 * P_K)}px;top:${r2(16 * P_K)}px;
+        width:${r2(150 * P_K)}px;height:${r2(48.48 * P_K)}px;font-size:${r2(18 * P_K)}px;
+        border-radius:${r2(13.5 * P_K)}px">${c.tag}</span>` : '';
+      // 白卡的 1px 描边烘在图里，图一放大就被裁掉，这里再补一层同色描边把边留住
+      const edge = c.frame ? '<span class="pcard__edge"></span>' : '';
+      return `<div class="pcard" data-pcard="${i}"
+        style="left:${x}px;top:${y}px;width:${P_CARD}px;height:${P_CARD}px">${art}${edge}${tag}</div>`;
+    }).join('');
+    // 底部一行：整组在栅格宽度内居中，文字与图标的间距按设计稿
+    const gridW = P_CARD * 3 + P_GAP * 2;
+    const footTop = r2(P_FOOT_TOP);
+    return `<div style="width:1920px;height:${P_DOC_H}px;overflow:hidden;background-color:#f7f7f7;position:relative">
+      ${cards}
+      <div class="pfoot" style="left:${r2(P_LEFT)}px;top:${footTop}px;width:${gridW}px;
+        font-size:${r2(25 * P_K)}px;gap:${r2(4 * P_K)}px">
+        <span>动画作品都会上传到我的小红书账号</span>
+        <img src="${P_DIR}xhs.webp" alt="" decoding="async" loading="lazy"
+          style="width:${r2(35.15 * P_K)}px;height:${r2(35.15 * P_K)}px" />
+      </div>
+    </div>`;
+  }
+
+  // 详情弹层：点卡片外或右上角叉号都能退出
+  const pmodal = document.getElementById('pmodal');
+  function openPModal(i) {
+    const d = PRACTICE_CARDS[i] && PRACTICE_CARDS[i].detail;
+    if (!d || !pmodal) return;
+    const shot = pmodal.querySelector('.pmodal__shot');
+    shot.src = P_DIR + d.shot;
+    shot.alt = d.title || '';
+    pmodal.querySelector('.pmodal__card').setAttribute('aria-label', d.title || '作品详情');
+    pmodal.setAttribute('aria-hidden', 'false');
+    pmodal.classList.add('is-open');
+  }
+  function closePModal() {
+    if (!pmodal) return;
+    pmodal.classList.remove('is-open');
+    pmodal.setAttribute('aria-hidden', 'true');
+  }
+  if (pmodal) {
+    pmodal.addEventListener('click', (e) => {
+      if (e.target instanceof Element && e.target.closest('[data-close]')) closePModal();
+    });
+    // 弹层开着时不让滚轮把背后的正文带走（也不改 body overflow，避免滚动条一收整页跳一下）
+    pmodal.addEventListener('wheel', (e) => { if (pmodal.classList.contains('is-open')) e.preventDefault(); },
+      { passive: false });
+    pmodal.addEventListener('touchmove', (e) => { if (pmodal.classList.contains('is-open')) e.preventDefault(); },
+      { passive: false });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && pmodal.classList.contains('is-open')) closePModal();
+    });
+  }
+
   // 每个内页一份配置：正文脚本、挂载的全局变量、设计稿画布高度、底部“下个作品”指向的卡片
   const CASES = {
     'case-companion': { src: 'pages/case-companion.js', key: 'CASE_DOC_COMPANION', h: 8944, nextRoute: 'case-justpaper' },
     'case-justpaper': { src: 'pages/case-justpaper.js', key: 'CASE_DOC_JUSTPAPER', h: 9952, nextRoute: 'case-oreate' },
-    'case-oreate': { src: 'pages/case-oreate.js', key: 'CASE_DOC_OREATE', h: 10795, nextId: 'terabox' },
+    'case-oreate': { src: 'pages/case-oreate.js', key: 'CASE_DOC_OREATE', h: 10795, nextRoute: 'case-terabox' },
+    'case-terabox': { src: 'pages/case-terabox.js', key: 'CASE_DOC_TERABOX', h: 7408, nextRoute: 'case-practices' },
+    'case-practices': { build: buildPracticesDoc, h: P_DOC_H },
   };
   const CASE_W = 1920;
   let caseScale = 1, caseScrolled = false;
@@ -746,6 +862,18 @@
   function loadCase(r) {
     const c = CASES[r];
     if (!c || c.loaded) return Promise.resolve();
+    // 结构规整的内页（Practices 作品墙）直接按数据装配，不用再单独存一份正文脚本
+    if (c.build) {
+      if (c.doc) {
+        c.doc.innerHTML = c.build();
+        c.doc.addEventListener('click', (e) => {
+          const el = e.target instanceof Element && e.target.closest('.pcard');
+          if (el) openPModal(Number(el.dataset.pcard));
+        });
+      }
+      c.loaded = true;
+      return Promise.resolve();
+    }
     if (!c.loading) {
       c.loading = new Promise((resolve) => {
         const s = document.createElement('script');
@@ -950,6 +1078,8 @@
     if (!c || !views[r]) return;
     caseScale = document.documentElement.clientWidth / CASE_W;
     views[r].style.setProperty('--cs', caseScale.toFixed(5));
+    // 详情弹层不在内页节点里，缩放系数同步挂到根节点上
+    document.documentElement.style.setProperty('--cs', caseScale.toFixed(5));
     views[r].style.setProperty('--ch', c.h + 'px');
     views[r].style.height = Math.round(c.h * caseScale) + 'px';
   }
@@ -963,20 +1093,26 @@
     requestAnimationFrame(() => { v.style.opacity = '1'; });
   }
   // 侧栏一开始不出现，进场时也不做动画；只有用户真的往下滚了才逐行显现
+  // 例外：只有 Back 的内页（Practices）没有章节可跟随，进场就跟着正文做同一套渐入
   function resetCaseNav(r) {
     const c = CASES[r];
     if (!c || !c.nav) return;
     caseScrolled = false;
     c.nav.classList.add('no-anim');
     c.nav.classList.remove('is-visible');
-    c.items.forEach((el, i) => el.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'));
+    c.items.forEach((el, i) => el.style.setProperty('--d',
+      (c.secs.length ? i * 0.06 : 0.3).toFixed(2) + 's'));   // 只有 Back 时略晚出，等角标幽灵先淡掉
     c.items.forEach((el) => el.classList.remove('is-current'));
     void c.nav.offsetWidth;                     // 先把隐藏态定住，入场不会闪一下
-    requestAnimationFrame(() => c.nav.classList.remove('no-anim'));
+    requestAnimationFrame(() => {
+      c.nav.classList.remove('no-anim');
+      if (!c.secs.length) requestAnimationFrame(() => c.nav.classList.add('is-visible'));
+    });
   }
   function caseScrollSpy() {
     const c = CASES[route];
     if (!c || !c.nav) return;
+    if (!c.secs.length) return;                 // 只有 Back 的内页不跟随滚动
     if (window.scrollY <= 30) caseScrolled = false;
     if (caseScrolled) c.nav.classList.add('is-visible');
     else c.nav.classList.remove('is-visible');
