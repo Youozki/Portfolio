@@ -5,8 +5,10 @@
   const ghostStage = document.getElementById('ghostStage');
   const cornerLogo = document.getElementById('cornerLogo');
   const floaters = document.getElementById('floaters');
+  const starLayer = document.getElementById('stars');
   const pill = document.querySelector('.nav__pill');
-  const eyes = document.querySelectorAll('.eye');
+  const eyeL = document.getElementById('eyeL');
+  const eyeR = document.getElementById('eyeR');
   const navLinks = document.querySelectorAll('.nav__link');
   if (!ghost || !inner || !ghostStage) return;
 
@@ -26,27 +28,149 @@
   let transitioning = false;
   let scrolledExpand = false;
 
-  const WAKE_RADIUS = 300;
-  const MAX_EYE = 8;
-  const MAX_EYE_UP = 11;      // 往上、往右两边看着更空，视线多探出去一点才平衡
-  const MAX_EYE_RIGHT = 11;
   const MAX_BODY = 4;
   let sleepTimer = null;
+
+  /* ---------------- 眼睛：设计稿实测几何（坐标系 = 身体 170.78×175.29） ----------------
+     睁眼是一条 round-cap 描边：粗 12.1、脊线长 19.6、脊线中段朝视线方向鼓出约 2
+     （设计稿两个状态实测：看右时鼓向右 1.5，看左时鼓向左 2.0）。
+     睡眠是同一条描边压成设计稿那两道斜短横：粗 9.3，左眼向右下 8.9°、右眼向右上 3.9°，
+     整对比睁眼时偏左 16、低 12.65，两只各自再朝外挪 5.5（都照设计稿睡眠帧实测）。
+     两端都是"三个点 + 一个线宽"，所以 morph 只是插值这几个数，不存在拉伸或圆角变形。
+     点击态（Group 2147238932）就是睁眼那根竖线"从中间往内折"：折点朝内（两只眼互相对着），
+     缺口方向是靠"凸包减去墨迹"定出来的（只按 IoU 拟合会把缺口摆错地方还看着挺高）。
+     设计稿实测的折线是 左 (54.45,83.85)-(65.71,85.56)-(54.79,90.18) 粗 10.7、
+     右 (109.94,86.71)-(97.72,87.4)-(108.62,94.79) 粗 10.8，但那个粗度大于两端间距，
+     两个圆头会糊在一起看不出造型，所以线宽照实测留住（10.5/10.6，和睁眼的 12.1 差不多粗），
+     改成把两端各往外撑到间距 15，缺口靠间距露出来而不是靠把线削细。
+     为了让"睁眼 → 折起"能连续插值，所有状态统一写成两段二次贝塞尔 M p0 Q a m Q b p1：
+     睁/睡态用 De Casteljau 在 t=0.5 把原来那段 Q 一分为二，形状完全不变。 */
+  const EYE = {
+    pairCx: 85.39, halfGap: 17.6,      // 眼距 35.2（设计稿实测）
+    cy: 89.25, halfTilt: 1.15,         // 右眼比左眼低 2.3
+    len: 19.6, w: 12.1, bow: 2.0, lean: 1.0,
+    gazeX: 18.5, gazeY: 5, gazeYDown: 10.5,   // 视线范围（设计稿两个极限状态相距 37）；向下比向上多给一点
+    sleepW: 9.3, sleepOut: 5.5, sleepDrop: 12.65, sleepShift: -16,
+    dash: { '-1': { len: 14.65, dy: 2.27 }, '1': { len: 15.64, dy: -1.05 } },
+    click: {
+      '-1': { p0: [54.45, 80.1], v: [65.71, 85.56], p1: [54.79, 95.1], w: 10.5 },
+      '1': { p0: [109.94, 82.9], v: [97.72, 87.4], p1: [108.62, 97.9], w: 10.6 },
+    },
+  };
+  let gazeX = 0, gazeY = 0;            // -1..1
+  let sleepT = 1;                      // 0 = 完全睁开，1 = 完全睡着
+  let blinkT = 0;                      // 0 = 常态，1 = 点击后那个折起来的眼睛
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+  function eyePath(side, gx, gy, t, k) {
+    const cx = EYE.pairCx + gx * EYE.gazeX + side * EYE.halfGap;
+    const cy = EYE.cy + side * EYE.halfTilt + gy * (gy > 0 ? EYE.gazeYDown : EYE.gazeY);
+    const d = EYE.dash[String(side)];
+    // 闭眼是"上下缩短 + 左右延长"：竖脊线先收（0→0.65），横脊线后展（0.35→1），
+    // 两段刻意重叠，中间那一小段是上下已经压扁、左右正在拉开，而不是整根线在倒
+    const shrink = 1 - clamp01(t / 0.65);
+    const grow = clamp01((t - 0.35) / 0.65);
+    const hy = (EYE.len / 2) * shrink;
+    const hx = (d.len / 2) * grow;
+    const slope = (d.dy / 2) * grow;
+    const bx = cx + (EYE.sleepShift + side * EYE.sleepOut) * t;
+    const by = cy + EYE.sleepDrop * t;
+    const lean = (EYE.lean / 2) * shrink;
+    const bow = gx * EYE.bow * 2 * (1 - t);      // Q 的最大偏移是控制点的一半，所以乘 2
+    // 压扁的过程里线宽微鼓一下，挤压感更明显；两端仍严格是 12.1 / 9.3
+    let w = EYE.w + (EYE.sleepW - EYE.w) * t + Math.sin(Math.PI * t) * 1.4;
+    const p0 = [bx - hx + lean, by - hy - slope];
+    const p1 = [bx + hx - lean, by + hy + slope];
+    const cp = [(p0[0] + p1[0]) / 2 + bow, (p0[1] + p1[1]) / 2];
+    // 拆成两段（形状不变）：中点 m 就是"从中间弯折"的那个折点
+    let m = [(p0[0] + 2 * cp[0] + p1[0]) / 4, (p0[1] + 2 * cp[1] + p1[1]) / 4];
+    let a = [(p0[0] + cp[0]) / 2, (p0[1] + cp[1]) / 2];
+    let b = [(cp[0] + p1[0]) / 2, (cp[1] + p1[1]) / 2];
+    if (k > 0) {
+      const c = EYE.click[String(side)];
+      const mix = (u, v2) => [u[0] + (v2[0] - u[0]) * k, u[1] + (v2[1] - u[1]) * k];
+      const half = (u, v2) => [(u[0] + v2[0]) / 2, (u[1] + v2[1]) / 2];
+      const q0 = mix(p0, c.p0), qm = mix(m, c.v), q1 = mix(p1, c.p1);
+      a = mix(a, half(c.p0, c.v)); b = mix(b, half(c.v, c.p1));
+      p0[0] = q0[0]; p0[1] = q0[1]; p1[0] = q1[0]; p1[1] = q1[1]; m = qm;
+      w += (c.w - w) * k;
+    }
+    const f = (v) => Math.round(v * 100) / 100;
+    return {
+      d: `M${f(p0[0])} ${f(p0[1])}Q${f(a[0])} ${f(a[1])} ${f(m[0])} ${f(m[1])}Q${f(b[0])} ${f(b[1])} ${f(p1[0])} ${f(p1[1])}`,
+      w: f(w),
+    };
+  }
+  function drawEyes() {
+    if (!eyeL || !eyeR) return;
+    const t = easeInOutCubic(sleepT);
+    const k = easeOutCubic(blinkT);
+    // 睡着时视线归中，醒着才跟随（睡眠过程里视线一起收回，不会出现"闭着眼还在瞟"）
+    const gx = gazeX * (1 - t), gy = gazeY * (1 - t);
+    [[-1, eyeL], [1, eyeR]].forEach(([side, el]) => {
+      const p = eyePath(side, gx, gy, t, k);
+      el.setAttribute('d', p.d);
+      el.setAttribute('stroke-width', p.w);
+    });
+    // 身体偏移和眼睛共用同一个 gx/gy 与同一条 t 曲线，所以"闭眼"和"身体回正"节奏完全一致
+    if (inner) inner.style.transform = `translate(${(gx * MAX_BODY).toFixed(2)}px, ${(gy * MAX_BODY).toFixed(2)}px)`;
+  }
+  const easeInOutCubic = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  const easeOutCubic = (k) => 1 - Math.pow(1 - k, 3);
+
+  /* 视线跟随和睡/醒共用一个 rAF 循环：
+     - 视线用指数逼近目标，天然带一点跟手延迟，也不会因为鼠标动得快而抖
+     - sleepT 按固定时长匀速推进（渲染时再过 ease），所以 mousemove 连续触发时
+       不会像原来那样每次都重启一段动画——那正是慢速移动时中间帧卡住的原因 */
+  const GAZE_LAG = 0.075;         // 每 16.7ms 向目标靠近的比例，越小越"黏"
+  const SLEEP_DUR = 620, WAKE_DUR = 400;
+  const BLINK_IN = 200, BLINK_OUT = 300, BLINK_HOLD = 480;   // 点击后折起来、停一下、再展开
+  let gazeTX = 0, gazeTY = 0, sleepTarget = 1, blinkTarget = 0;
+  let tickId = null, lastTick = 0, blinkTimer = null;
+  function needTick() {
+    return Math.abs(gazeTX - gazeX) > 0.0015 || Math.abs(gazeTY - gazeY) > 0.0015
+      || sleepT !== sleepTarget || blinkT !== blinkTarget;
+  }
+  function tick(now) {
+    const dt = Math.min(now - lastTick, 64);
+    lastTick = now;
+    const k = 1 - Math.pow(1 - GAZE_LAG, dt / 16.67);
+    gazeX += (gazeTX - gazeX) * k;
+    gazeY += (gazeTY - gazeY) * k;
+    const step = dt / (sleepTarget > sleepT ? SLEEP_DUR : WAKE_DUR);
+    if (sleepT < sleepTarget) sleepT = Math.min(sleepTarget, sleepT + step);
+    else if (sleepT > sleepTarget) sleepT = Math.max(sleepTarget, sleepT - step);
+    const bs = dt / (blinkTarget > blinkT ? BLINK_IN : BLINK_OUT);
+    if (blinkT < blinkTarget) blinkT = Math.min(blinkTarget, blinkT + bs);
+    else if (blinkT > blinkTarget) blinkT = Math.max(blinkTarget, blinkT - bs);
+    drawEyes();
+    tickId = needTick() ? requestAnimationFrame(tick) : null;
+  }
+  function startTick() {
+    if (!canAnim) { gazeX = gazeTX; gazeY = gazeTY; sleepT = sleepTarget; blinkT = blinkTarget; drawEyes(); return; }
+    if (tickId != null) return;
+    lastTick = performance.now();
+    tickId = requestAnimationFrame(tick);
+  }
+  // 点击：先确保醒着，眼睛从中间折成设计稿那个"勾"，停一下再展开
+  function blink() {
+    blinkTarget = 1;
+    startTick();
+    clearTimeout(blinkTimer);
+    blinkTimer = setTimeout(() => { blinkTarget = 0; startTick(); }, BLINK_IN + BLINK_HOLD);
+  }
 
   /* ---------------- 睡/醒 ---------------- */
   function setAwake(on) {
     ghost.classList.toggle('is-awake', on);
-    if (!on) {
-      // 只写 transform，眨眼那条 scale 过渡留给 CSS（写内联 transition 会把它整条顶掉）
-      eyes.forEach((eye) => { eye.style.transform = 'translate(0, 0)'; });
-      inner.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      inner.style.transform = 'translate(0, 0)';
-    }
+    sleepTarget = on ? 0 : 1;
+    // 不用再单独把身体动画归零：身体位移在 drawEyes 里跟着同一条 t 曲线一起收回
+    startTick();
   }
   function wake() {
     setAwake(true);
     clearTimeout(sleepTimer);
-    sleepTimer = setTimeout(() => setAwake(false), 2800);
+    sleepTimer = setTimeout(() => setAwake(false), 1400);
   }
 
   function onMove(e) {
@@ -57,18 +181,14 @@
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
     const dist = Math.hypot(dx, dy);
-    if (dist < WAKE_RADIUS) wake();
+    wake();                        // 页面里任何地方动鼠标都算"叫醒"，不再按距离判断
     const angle = Math.atan2(dy, dx);
     const t = Math.min(dist / 70, 1);
-    const ex = Math.cos(angle) * t * (Math.cos(angle) > 0 ? MAX_EYE_RIGHT : MAX_EYE);
-    const ey = Math.sin(angle) * t * (Math.sin(angle) < 0 ? MAX_EYE_UP : MAX_EYE);
-    const bx = Math.cos(angle) * t * MAX_BODY;
-    const by = Math.sin(angle) * t * MAX_BODY;
-    eyes.forEach((eye) => {
-      eye.style.transform = `translate(${ex}px, ${ey}px)`;
-    });
-    inner.style.transition = 'transform 0.16s ease-out';
-    inner.style.transform = `translate(${bx}px, ${by}px)`;
+    // 视线（含眼睛弧度）用归一化的 -1..1，具体位移在 eyePath 里按设计稿的范围换算
+    gazeTX = Math.cos(angle) * t;
+    gazeTY = Math.sin(angle) * t;
+    startTick();
+    drawEyes();
   }
   window.addEventListener('mousemove', onMove, { passive: true });
   // ROUTER_PLACEHOLDER
@@ -80,6 +200,7 @@
     route = r;
     body.className = 'route-' + r;
     closePModal();
+    closeQuote();
     Object.keys(views).forEach((k) => {
       const on = k === r;
       if (!views[k]) return;
@@ -93,7 +214,7 @@
     // 离开首页时清空残留粒子，避免切回首页时堆积
     if (r !== 'home' && floaters) floaters.replaceChildren();
     if (r === 'about' || r === 'contact') requestAnimationFrame(enterReveal);
-    if (r === 'contact') writeMarks();
+    if (r === 'contact') { writeMarks(); soEnter(); }
     if (r.indexOf('case-') === 0) {
       fitCase(r);
       resetCaseNav(r);
@@ -130,6 +251,12 @@
   function navigate(r) {
     if (!ROUTES.includes(r)) r = 'home';
     if (r === route || transitioning) return;
+    // 从作品内页回牌堆：默认落在刚看完的那个项目上
+    //（"下一个项目"那张卡会先自己写好 pendingCard，这里不覆盖）
+    if (r === 'projects' && route.indexOf('case-') === 0 && pendingCard < 0) {
+      const back = PROJECTS.findIndex((p) => p.caseRoute === route);
+      if (back >= 0) pendingCard = back;
+    }
     // 进作品内页：正文首次进入时才拉取，拉到手再切，避免进去看到空白
     if (r.indexOf('case-') === 0 && CASES[r] && !CASES[r].loaded && !CASES[r].failed) {
       loadCase(r).then(() => navigate(r));
@@ -311,8 +438,54 @@
     clearTimeout(writeTimer);
     writeTimer = setTimeout(() => v.classList.remove('is-writing'), 900);
   }
-  let revealTick = false;  window.addEventListener('scroll', () => {
-    if (revealTick) return;
+  /* ---------------- Contact 的 So...：正文渐隐、那段设计观渐显 ---------------- */
+  const soBtn = document.getElementById('soBtn');
+  const quoteEl = document.getElementById('quote');
+  let quoteOpen = false;
+  function openQuote() {
+    if (quoteOpen || !quoteEl) return;
+    quoteOpen = true;
+    // is-pop 的 fill 会锁住角标幽灵的 opacity，先摘掉才淡得下去
+    if (cornerLogo) cornerLogo.classList.remove('is-pop', 'is-shrink');
+    body.classList.add('quote-open');
+    quoteEl.setAttribute('aria-hidden', 'false');
+    if (soBtn) soBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeQuote() {
+    if (!quoteOpen) return;
+    quoteOpen = false;
+    body.classList.remove('quote-open');
+    if (quoteEl) quoteEl.setAttribute('aria-hidden', 'true');
+    if (soBtn) soBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (soBtn) {
+    soBtn.addEventListener('click', (e) => { e.stopPropagation(); openQuote(); });
+  }
+  // 空白处点一下就退出：只有点在字上才不关（行间距、行首行尾都算空白，
+  // 靠内层 <span> 的行内盒判断——它只有字高，不含 58.15 的行距）
+  document.addEventListener('click', (e) => {
+    if (!quoteOpen) return;
+    const t = e.target;
+    if (t instanceof Element && t.closest('.quote span')) return;
+    closeQuote();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeQuote(); });
+  // 进 Contact 时按钮跟着正文渐显（它不在逐行渐显那批里，会被滚动淡化误伤）
+  let soTimer = null;
+  function soEnter() {
+    if (!soBtn) return;
+    if (!canAnim) { soBtn.style.opacity = ''; return; }
+    soBtn.style.transition = 'none';
+    soBtn.style.opacity = '0';
+    void soBtn.offsetWidth;
+    soBtn.style.transition = 'opacity 0.5s ease 0.42s';   // 正文那串走一段后再跟上
+    soBtn.style.opacity = '1';
+    clearTimeout(soTimer);
+    // 跑完把内联时序摘掉，让退出文字页那条 0.34s 延迟的规则重新接管
+    soTimer = setTimeout(() => { soBtn.style.transition = ''; }, 1000);
+  }
+
+  let revealTick = false;  window.addEventListener('scroll', () => {    if (revealTick) return;
     revealTick = true;
     requestAnimationFrame(() => { scrollReveal(); revealTick = false; });
   }, { passive: true });
@@ -342,8 +515,30 @@
       );
     }
   }
+  /* 点击迸星星：从头顶朝两侧随机弹，幅度小、尺寸随机偏小、边转边淡出。
+     一次点击就一颗，不另外做节流——点得快自然出得密。
+     星星在飞的这段时间泡泡停发（已经飞出去的那批让它们自己淡完就行）。 */
+  const STAR_LIFE = 1000;
+  let starsUntil = 0;      // 这个时间点之前不发泡泡
+  function popStars() {
+    if (!starLayer || !canAnim) return;
+    const s = document.createElement('span');
+    s.className = 'star';
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const sz = 19 + Math.random() * 9;                       // 19~28px
+    const dur = 820 + Math.random() * 300;
+    s.style.setProperty('--sz', sz.toFixed(1) + 'px');
+    s.style.setProperty('--x', (side * (26 + Math.random() * 34)).toFixed(1) + 'px');
+    s.style.setProperty('--y', (-(22 + Math.random() * 34)).toFixed(1) + 'px');
+    s.style.setProperty('--r', (side * (110 + Math.random() * 190)).toFixed(0) + 'deg');
+    s.style.setProperty('--dur', dur.toFixed(0) + 'ms');
+    starLayer.appendChild(s);
+    s.addEventListener('animationend', () => s.remove());
+    starsUntil = performance.now() + STAR_LIFE;
+  }
+
   function onGhostActivate() {
-    if (route === 'home') { wake(); bounce(); }
+    if (route === 'home') { wake(); blink(); bounce(); popStars(); }
     else { navigate('home'); }
   }
   ghost.addEventListener('click', onGhostActivate);
@@ -372,6 +567,7 @@
     let i = 0;
     function spawn() {
       if (document.hidden || route !== 'home') return;
+      if (performance.now() < starsUntil) return;   // 正在迸星星，泡泡先停发
       const awake = ghost.classList.contains('is-awake');
       const p = document.createElement('span');
       p.className = 'p';
@@ -1139,6 +1335,7 @@
 
   /* ---------------- 初始化 ---------------- */
   const initial = routeFromHash();
+  drawEyes();                                   // 先按睡着的样子画好，避免首帧空白
   applyRoute(initial);
   if (CASES[initial]) loadCase(initial).then(() => fitCase(initial));
   if (initial.indexOf('case-') !== 0) popEl(initial === 'home' ? ghost : cornerLogo);

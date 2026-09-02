@@ -1,8 +1,13 @@
 :root {
   --ink: #3a3a3a;
   --muted: rgba(128, 127, 127, 1);
-  --ghost-w: clamp(126px, 11.7vw, 160.7px);   /* 设计稿 178.58 的 0.9，整体收小一点 */
-  --ghost-ratio: 1.00487; /* 179.45 / 178.58，首页幽灵原造型 */
+  --ghost-w: clamp(101px, 9.3vw, 129px);      /* 新造型整体收小到原来的 0.8 */
+  --ghost-ratio: 1.02641; /* 175.29 / 170.78，新造型（设计稿 Group 2147238881） */
+  /* 小星星（Star 27）：四个尖在 72°/162°/252°/342°、尖半径按 83px 导出图实测反推。
+     控制点半径按 0.322×尖半径，四条边的内凹弧度比导出图更明显——导出图本身偏方，
+     缩到二十来 px 时抗锯齿会把那点内凹抹平，看着就是个方块，所以刻意做深一点。
+     尖头用同色 round-join 描边（2.8）磨出圆角，不然小尺寸下四个角扎得太硬 */
+  --star-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 33.5 33.5'%3E%3Cpath d='M21.35 31.34Q14.47 21.13 2.16 21.35Q12.37 14.47 12.15 2.16Q19.03 12.37 31.34 12.15Q21.13 19.03 21.35 31.34Z' fill='%23000' stroke='%23000' stroke-width='2.8' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,13 +75,17 @@ body:not(.route-home) { overflow-y: auto; }   /* 内页可滚动 */
 .view { display: none; opacity: 1; transition: opacity 0.25s ease; }
 .view.is-active { display: block; }
 .view-home.is-active { position: fixed; inset: 0; }
-.view-about.is-active { min-height: 100vh; padding: 150px 0 120px; }
+/* 底部留白要够最后一行滚出"渐淡区"（滚动淡化从视口 80% 往下开始），
+   所以按视口高取 20vh，短窗口至少 120px */
+.view-about.is-active { min-height: 100vh; padding: 150px 0 max(140px, 22vh); }
 .view-contact.is-active {
+  --csc: 0.9;                  /* Contact 整块的缩放系数（正文 + 感叹号 + 二维码 + So 按钮） */
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   /* 感叹号和 hover 出来的二维码是绝对定位、不占高度，居中时这些视觉重量全压在下半边，
-     所以垫一段下边距把整块往上提约 40px；左边再垫 16px 把正文右移 8px，
-     对齐顶部导航含胶囊的视觉中心（胶囊比链接组右边缘多探出 16px） */
-  padding: 0 0 80px 16px;
+     所以垫一段下边距把整块往上提约 40px。水平方向不再垫左边距：正文和 So 按钮
+     统一对齐页面真实中心，两者才不会差那 8px */
+  padding: 0 0 80px;
+  position: relative;   /* So... 按钮按设计稿贴底部绝对定位 */
 }
 .view-projects.is-active {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -94,7 +103,8 @@ body:not(.route-home) .ghost-stage { display: none; }   /* 内页不显示首页
 .corner-logo {
   position: fixed;
   left: 30px; top: 18px;
-  width: 34.77px; height: 35px;
+  width: 35.24px; height: 35px;   /* 高度取设计稿 35，宽度按导出图 145×144 的比例（导出图含描边，
+                                     f2c 标的 34.10 是不含描边的 path 盒子，不能直接用） */
   z-index: 40; cursor: pointer; display: none;
   transform-origin: center center;
   user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
@@ -127,55 +137,19 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   animation: bob 3400ms ease-in-out 760ms infinite;
   will-change: transform, translate;
 }
-.ghost__halo, .ghost__body { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
-.ghost__halo { z-index: 0; transform: scale(1.09); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.13)) drop-shadow(0 10px 9px rgba(0, 0, 0, 0.08)); }
-.ghost__body { z-index: 1; }
-
-/* 眼睛图层：闭眼 / 睁眼 两层叠着，靠下面的眨眼动作衔接，身体保持不变 */
-.eyes { position: absolute; inset: 0; z-index: 3; }
-/* 闭眼：瞳孔收拢到只剩一条线时再接上短横，所以淡入压在收拢的尾巴上 */
-.eyes--closed { opacity: 1; transition: opacity 90ms linear 110ms; }
-.eyes--open   { opacity: 0; transition: opacity 80ms linear 130ms; }
-.ghost.is-awake .eyes--closed { opacity: 0; transition: opacity 80ms linear; }
-.ghost.is-awake .eyes--open   { opacity: 1; transition: opacity 60ms linear; }
-
-/* 闭眼短横：设计稿原样 */
-.eyes-closed-img {
-  position: absolute;
-  left: 24%;
-  top: 46.5%;
-  width: 50%;
-  height: auto;
+/* 整张造型图直接用设计稿导出（白色贴纸描边 + 浅蓝发光都在图里，四周留白没被裁掉）。
+   .ghost 的盒子仍然等于身体本体，所以图要按设计稿的留白比例往外铺 */
+.ghost__art {
+  position: absolute; display: block; z-index: 0;
+  left: -16.844%; top: -17.204%; width: 133.839%; height: 134.409%;
 }
-
-/* 睁眼瞳孔（设计稿 Group 2147238871 的圆头竖条），跟随由 JS 写 transform。
-   眨眼用独立的 scale 属性把瞳孔纵向收拢成一条细线，跟 transform 各走各的，
-   不会互相覆盖；圆头随之等比压扁，收到底正好是闭眼那两道短横的位置和粗细 */
-.eye {
-  position: absolute;
-  will-change: transform, scale, translate;
-  transform-origin: center center;
-  /* 合上：纵向压扁、横向略摊开，正好是闭眼短横的粗细和长度 */
-  scale: 1.5 0.16;
-  /* 压扁的同时挪到设计稿闭眼短横的位置上，淡入淡出才不会看出错位；
-     用百分比（相对瞳孔自身尺寸）好跟着 --ghost-w 一起缩 */
-  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
-              scale 140ms cubic-bezier(0.4, 0, 1, 1),
-              translate 140ms cubic-bezier(0.4, 0, 1, 1);
+/* 眼睛：一条 round-cap 描边，脊线弧度和粗细全由 JS 写，睡/醒之间是同一条路径插值 */
+.ghost__eyes {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 2; overflow: visible; pointer-events: none;
 }
-.eye--left  { translate: -7% -14%; }
-.eye--right { translate: 37% -7%; }
-.ghost.is-awake .eye {
-  scale: 1 1;
-  translate: 0 0;
-  /* 醒着时：跟随要跟手，睁眼带一点回弹 */
-  transition: transform 0.16s ease-out,
-              scale 260ms cubic-bezier(0.34, 1.56, 0.64, 1) 40ms,
-              translate 220ms cubic-bezier(0.34, 1.56, 0.64, 1) 40ms;
-}
-/* 眼身比例照设计稿：瞳孔高 28.8 / 身高 179.45 ≈ 16%，宽高比 62:120 由 height:auto 保证 */
-.eyes--open .eye--left  { left: 28.03%; top: 45.19%; width: 8.33%; height: auto; }
-.eyes--open .eye--right { left: 51.55%; top: 49.09%; width: 8.33%; height: auto; }
+/* 点击态是"从中间折起来"的一勾，折点靠 linejoin 圆角化，和设计稿的圆头一致 */
+.ghost__eye { fill: none; stroke: #3a3a3a; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- 漂浮物：Zzz / 气泡（JS 逐个发射） ---------- */
 .floaters {
@@ -200,6 +174,35 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
   display: block;
   border-radius: 50%;
   width: 100%; height: 100%;
+}
+
+/* ---------- 点击迸出的小星星（Star 27） ---------- */
+.stars {
+  position: absolute;
+  left: 50%;
+  /* 冒出点放到造型外面（和泡泡一样从图像外冒）：造型图往上多出身高的 17.2%（白描边+发光），
+     这里取 7.5% 就落在头顶轮廓之外、又不至于飘得太远 */
+  top: calc(var(--ghost-w) * var(--ghost-ratio) * -0.075);
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 3;   /* 从头顶外面飞出来，不被幽灵遮住 */
+}
+.star {
+  position: absolute;
+  left: 0; top: 0;
+  width: var(--sz, 11px); height: var(--sz, 11px);
+  margin: calc(var(--sz, 11px) / -2) 0 0 calc(var(--sz, 11px) / -2);
+  background: #2084e9;   /* 导出图就是这一个纯色 */
+  -webkit-mask: var(--star-mask) center / contain no-repeat;
+  mask: var(--star-mask) center / contain no-repeat;
+  will-change: transform, opacity;
+  animation: starPop var(--dur, 860ms) cubic-bezier(0.22, 0.8, 0.36, 1) forwards;
+}
+@keyframes starPop {
+  0%   { transform: translate(0, 0) rotate(0deg) scale(0.25); opacity: 0; }
+  22%  { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(var(--x, 0px), var(--y, -26px)) rotate(var(--r, 180deg)) scale(1); opacity: 0; }
 }
 
 /* ---------- 问候语 ---------- */
@@ -241,41 +244,45 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 @media (prefers-reduced-motion: reduce) {
   .ghost, .ghost__inner { animation: none !important; }
   .contact__mark { animation: none !important; }
-  .eyes, .eye { transition-duration: 1ms !important; }
+  .eyes, .eye { transition-duration: 1ms !important; }   /* 旧眼睛层已移除，留着不影响 */
+  .quote, .contact, .contact__so { transition-duration: 1ms !important; transition-delay: 0s !important; }
   .p { animation-duration: 1ms; }
 }
 
 /* ---------- 内容容器 & About 排版 ---------- */
-.container { max-width: 700px; margin: 0 auto; padding: 0 24px; }
+/* 整页内容按 0.964 等比收小：正文 14 → 13.5px，正好等于 Contact 那边
+   15px × 0.90 的视觉字号。所有间距、图片、栅格列宽都乘同一系数，版式关系不变 */
+.container { max-width: 675px; margin: 0 auto; padding: 0 23.1px; }
 
 /* 角色图：导出图四周带透明边，已按不透明区裁掉，左边缘正好压在段首那条竖线上 */
-.about__avatar { display: block; width: 35.3px; height: 62px; margin-bottom: 16px; }
-.about__name { font-size: 21px; font-weight: 600; color: #32302e; }
-.about__role { margin-top: 8px; font-size: 14px; color: #32302e; opacity: 0.5; }
-.about__bio { position: relative; margin-top: 38px; }
-.about__bio p { font-size: 14px; line-height: 1.9; color: #32302e; margin-bottom: 20px; }
+.about__avatar { display: block; width: 34px; height: 59.8px; margin-bottom: 15.4px; }
+.about__name { font-size: 20.25px; font-weight: 600; color: #32302e; }
+.about__role { margin-top: 7.7px; font-size: 13.5px; color: #32302e; opacity: 0.5; }
+.about__bio { position: relative; margin-top: 36.6px; }
+.about__bio p { font-size: 13.5px; line-height: 1.9; color: #32302e; margin-bottom: 19.3px; }
 .about__bio p:last-child { margin-bottom: 0; }
 
-.about__block { margin-top: 84px; }
-.about__heading { font-size: 14px; font-weight: 400; color: #4b4b4b; margin-bottom: 18px; }
+.about__block { margin-top: 81px; }
+.about__heading { font-size: 13.5px; font-weight: 400; color: #4b4b4b; margin-bottom: 17.4px; }
 .rows { list-style: none; }
 .row {
-  display: grid; grid-template-columns: 120px auto 1fr;
-  align-items: center; gap: 16px;
-  padding: 12px 0;
-  font-size: 14px; color: #32302e;
+  display: grid; grid-template-columns: 115.7px auto 1fr;
+  align-items: center; gap: 15.4px;
+  padding: 11.6px 0;
+  font-size: 13.5px; color: #32302e;
 }
-.row__lead { display: flex; align-items: center; gap: 10px; }
-.logo { width: 52px; height: 16px; object-fit: contain; object-position: left center; }
+.row__lead { display: flex; align-items: center; gap: 9.6px; }
+.logo { width: 50.1px; height: 15.4px; object-fit: contain; object-position: left center; }
 .row__title { font-weight: 400; }
 .row__mid { color: #32302e; opacity: 0.5; }
 .row__date { color: #32302e; text-align: right; white-space: nowrap; }
 /* Skills：右侧内容右对齐；行距更紧凑 */
-.rows--skills .row { grid-template-columns: 72px 1fr; padding: 7px 0; }
+.rows--skills .row { grid-template-columns: 69.4px 1fr; padding: 6.7px 0; }
 .row__label { color: #32302e; }
 .rows--skills .row__val { text-align: right; }
 
-.about__cta { margin-top: 140px; display: flex; justify-content: center; }
+/* 先藏起来看看效果（结构留着，想恢复把这行去掉即可） */
+.about__cta { margin-top: 135px; display: none; }
 .btn-contact {
   display: inline-flex; align-items: center; gap: 9px;
   background: #2084e9; color: #fff; border: none; border-radius: 22px;
@@ -290,7 +297,9 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 .lead { margin-top: 16px; font-size: 16px; line-height: 1.8; color: #32302e; opacity: 0.6; }
 
 /* ---------- Contact ---------- */
-.contact { text-align: center; }
+/* 整块（含感叹号、hover 出来的二维码/提示）和下方按钮共用一个缩放系数，
+   这样细节的相对位置一点不变；缩放围绕各自中心，所以水平中心也不动 */
+.contact { text-align: center; transform: scale(var(--csc, 1)); }
 .contact__note { font-size: 13px; color: #000; }
 .contact__row {
   list-style: none; margin-top: 46px;
@@ -357,6 +366,51 @@ body:not(.route-home) .corner-logo { display: block; }   /* 内页显示设计�
 /* 两个感叹号错开一点，像依次写下去 */
 .view-contact.is-writing .contact__item:nth-of-type(4) .contact__markStroke { animation-delay: 150ms; }
 .view-contact.is-writing .contact__item:nth-of-type(4) .contact__markDot { animation-delay: 580ms; }
+
+/* So... 按钮：设计稿 67x48 的药丸收到 56x40，1080 高里贴底 123px，
+   再乘 Contact 整块那个 --csc 一起缩；缩放围绕中心，所以水平仍落在页面真实中心 */
+.contact__so {
+  position: absolute;
+  left: 50%; bottom: 123px;
+  width: 56px; height: 40px;
+  transform: translateX(-50%) scale(var(--csc, 1));
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 20px;
+  background: #32302e; color: #fff;
+  font-family: inherit; font-size: 13px; letter-spacing: 0.02em;
+  cursor: pointer;
+}
+/* hover 不做任何变化：没有 :hover 规则，过渡也只留渐隐渐显那一条 */
+
+/* 那段设计观：设计稿 15px / 行高 58.15，整块比视口中心略高 24px */
+.quote {
+  position: fixed;
+  left: 50%; top: 50%;
+  transform: translate(-50%, calc(-50% - 24px)) scale(var(--csc, 1));   /* 与 Contact 正文同一缩放系数 */
+  width: min(880px, calc(100vw - 80px));
+  text-align: center;
+  font-size: 15px; line-height: 58.15px; letter-spacing: 0.02em;
+  color: #32302e;
+  opacity: 0; pointer-events: none;
+  z-index: 20;
+  transition: opacity 0.62s ease;   /* 关闭时立刻起步，让正文的渐显压在后面 */
+}
+/* 打开：正文先慢慢淡掉，文字晚一点再渐显；关闭时两条时序对调 */
+body.quote-open .quote {
+  opacity: 1; pointer-events: auto;
+  transition: opacity 0.72s ease 0.42s;
+}
+body.quote-open .nav,
+body.quote-open .corner-logo,
+body.quote-open .contact,
+body.quote-open .contact__so {
+  opacity: 0 !important; pointer-events: none;
+  transition: opacity 0.56s ease !important;
+}
+/* 关闭时正文等文字渐出走完再回来（只在 Contact 页改这条时序，别动内页那套 0.26 的渐隐） */
+body.route-contact .nav,
+body.route-contact .corner-logo,
+.contact, .contact__so { transition: opacity 0.5s ease 0.34s; }
 
 /* ---------- Projects：翻页式卡片牌堆（尺寸/坐标全部沿用设计稿像素） ---------- */
 .projects { --s: 1; display: flex; justify-content: center; height: calc(567px * var(--s)); }

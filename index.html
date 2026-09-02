@@ -20,26 +20,25 @@
     </nav>
   </header>
 
-  <!-- 首页的小幽灵舞台（原造型，带睡/醒/跟随/粒子交互） -->
+  <!-- 首页的小幽灵舞台（新造型：白色贴纸描边 + 浅蓝发光，眼睛用 SVG 描边画，可弯可 morph） -->
   <div class="ghost-stage" id="ghostStage">
     <div class="floaters" id="floaters" aria-hidden="true"></div>
     <div class="ghost" id="ghost" aria-label="小幽灵吉祥物" role="button" tabindex="0">
       <div class="ghost__inner" id="ghostInner">
-        <img class="ghost__halo" src="assets/image_7.png" alt="" />
-        <img class="ghost__body" src="assets/image_6.png" alt="小幽灵" />
-        <span class="eyes eyes--closed">
-          <img class="eyes-closed-img" src="assets/eyes_closed.png" alt="" />
-        </span>
-        <span class="eyes eyes--open">
-          <img class="eye eye--left" src="assets/eye.png" alt="" />
-          <img class="eye eye--right" src="assets/eye.png" alt="" />
-        </span>
-      </div>
+        <img class="ghost__art" src="assets/ghost_art.webp" alt="小幽灵" />
+        <!-- viewBox 直接用设计稿身体的 170.78×175.29，脚本里的坐标就是设计稿坐标 -->
+        <svg class="ghost__eyes" id="ghostEyes" viewBox="0 0 170.78 175.29" aria-hidden="true">
+          <path class="ghost__eye" id="eyeL" />
+          <path class="ghost__eye" id="eyeR" />
+        </svg>
     </div>
+    <!-- 点击时从头顶蹦出来的小星星（Star 27），朝两侧随机飞、边转边淡出 -->
+    <div class="stars" id="stars" aria-hidden="true"></div>
+  </div>
   </div>
 
   <!-- 内页左上角 Logo：设计稿里的幽灵造型（与首页不同），点击返回首页 -->
-  <img class="corner-logo" id="cornerLogo" src="assets/about/corner_ghost.png"
+  <img class="corner-logo" id="cornerLogo" src="assets/about/corner_ghost.webp"
        alt="返回首页" role="button" tabindex="0" />
 
   <main>
@@ -141,6 +140,14 @@
             </span>
           </li>
         </ul>
+      </div>
+
+      <!-- 底部小按钮：点开后正文/顶栏/角标幽灵渐隐，那段设计观渐显 -->
+      <button class="contact__so" type="button" id="soBtn" aria-expanded="false">So...</button>
+      <div class="quote" id="quote" aria-hidden="true">
+        <p><span>设计师的任务就是提高信息的品质，增强传播的力量。技术的进步并不能直接带来信息品质的提高。</span></p>
+        <p><span>“如何更容易了解？如何令人更加舒适？如何更为简单的传达？如何才能让人感动？”</span></p>
+        <p><span>这些才是衡量设计师的信息处理能力的尺度。</span></p>
       </div>
     </section>
 
